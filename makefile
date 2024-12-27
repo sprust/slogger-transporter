@@ -20,3 +20,6 @@ run:
 
 build:
 	go build -o ./bin/ internal/server.go
+
+test:
+	go test -v ./...
