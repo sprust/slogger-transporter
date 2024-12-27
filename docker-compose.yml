@@ -1,0 +1,42 @@
+version: '3.5'
+
+services:
+  mongo:
+    image: mongo:6.0.5
+    container_name: slt-mongo
+    restart: unless-stopped
+    command: [ "mongod", "--wiredTigerCacheSizeGB", "${MONGO_DOCKER_WIRED_TIGER_CACHE_SIZE_GB:-5}" ]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ADMIN_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+      MONGO_ADMIN_USERNAME: ${MONGO_ADMIN_USERNAME}
+      MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+    ports:
+      - ${MONGO_DOCKER_PORT}:${MONGO_PORT}
+    volumes:
+      - ./docker/mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - mongo:/data/db
+
+  rabbitmq:
+    image: rabbitmq:4.0.5-management-alpine
+    container_name: slt-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: rabbitmq-diagnostics -q check_port_connectivity
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+    ports:
+      - ${RABBITMQ_DOCKER_PORT:-16677}:5672
+      - ${RABBITMQ_DOCKER_ADMIN_PORT:-25777}:15672
+
+volumes:
+  mongo:
+    driver: local
+  rabbitmq:
+    driver: local
