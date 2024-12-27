@@ -23,3 +23,6 @@ build:
 
 test:
 	go test -v ./...
+
+bin-server:
+	./bin/server
