@@ -4,22 +4,25 @@ import (
 	"log/slog"
 	"net"
 	"net/rpc"
+	"slogger-transporter/internal/rpc/ping_pong"
 )
 
-type Server struct {
-	rpcPort   string
-	functions []any
+var functions = []any{
+	&ping_pong.PingPong{},
 }
 
-func NewServer(rpcPort string, functions []any) *Server {
+type Server struct {
+	rpcPort string
+}
+
+func NewServer(rpcPort string) *Server {
 	return &Server{
-		rpcPort:   rpcPort,
-		functions: functions,
+		rpcPort: rpcPort,
 	}
 }
 
 func (srv *Server) Run() error {
-	for _, function := range srv.functions {
+	for _, function := range functions {
 		err := rpc.Register(function)
 
 		if err != nil {

@@ -4,8 +4,8 @@ import (
 	"github.com/joho/godotenv"
 	"log/slog"
 	"os"
+	"slogger-transporter/internal/grpc"
 	"slogger-transporter/internal/rpc"
-	"slogger-transporter/internal/rpc/ping_pong"
 )
 
 func init() {
@@ -17,17 +17,48 @@ func init() {
 }
 
 func main() {
-	rpcPort := os.Getenv("RPC_PORT")
+	args := os.Args
+	argsLen := len(args)
 
-	functions := []any{
-		&ping_pong.PingPong{},
+	errorArgMsg := "use 'rpc' or 'grpc' arg"
+
+	if argsLen != 2 {
+		slog.Error(errorArgMsg)
+
+		return
 	}
 
-	server := rpc.NewServer(rpcPort, functions)
+	mode := args[1]
 
-	err := server.Run()
+	if mode != "rpc" && mode != "grpc" {
+		slog.Error(errorArgMsg)
 
-	if err != nil {
-		slog.Error(err.Error())
+		return
 	}
+
+	slog.Warn("*** " + mode + " ***")
+
+	if mode == "rpc" {
+		rpcPort := os.Getenv("RPC_PORT")
+
+		server := rpc.NewServer(rpcPort)
+
+		err := server.Run()
+
+		if err != nil {
+			slog.Error(err.Error())
+		}
+	} else {
+		grpcPort := os.Getenv("GRPC_PORT")
+
+		server := grpc.NewServer(grpcPort)
+
+		err := server.Run()
+
+		if err != nil {
+			slog.Error(err.Error())
+		}
+	}
+
+	slog.Info("exit")
 }

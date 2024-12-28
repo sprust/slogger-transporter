@@ -22,7 +22,15 @@ build:
 	go build -o ./bin/ internal/server.go
 
 test:
+	go test ./...
+
+test-detail:
 	go test -v ./...
+
+grpc-generate:
+	protoc --go_out=./internal/grpc/gen/ \
+		--go-grpc_out=./internal/grpc/gen/ \
+			./internal/grpc/proto/ping_pong.proto
 
 bin-server:
 	./bin/server

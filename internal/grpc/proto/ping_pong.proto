@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package slogger_transporter;
+
+option go_package = "services/ping_pong_gen";
+
+service PingPong {
+  rpc Ping(Request) returns (Response) {}
+}
+
+message Request {
+  string message = 1;
+}
+
+message Response {
+  string message = 1;
+}
