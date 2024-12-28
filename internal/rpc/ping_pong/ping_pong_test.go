@@ -18,7 +18,7 @@ func init() {
 	// TODO: validate env variables
 }
 
-func TestPingPong_Pong(t *testing.T) {
+func TestPingPong_Ping(t *testing.T) {
 	rpcPort := os.Getenv("RPC_PORT")
 
 	client, err := rpc.Dial("tcp", ":"+rpcPort)
@@ -39,7 +39,7 @@ func TestPingPong_Pong(t *testing.T) {
 
 	var result ping_pong.PingPongResult
 
-	err = client.Call("PingPong.Pong", args, &result)
+	err = client.Call("PingPong.Ping", args, &result)
 
 	assert.NoError(t, err)
 

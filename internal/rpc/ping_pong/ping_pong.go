@@ -11,7 +11,7 @@ type PingPongResult struct {
 	Message string
 }
 
-func (p *PingPong) Pong(args *PingPongArgs, reply *PingPongResult) error {
+func (p *PingPong) Ping(args *PingPongArgs, reply *PingPongResult) error {
 	reply.Message = args.Message
 
 	return nil
