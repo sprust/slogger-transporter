@@ -33,4 +33,4 @@ grpc-generate:
 			./internal/grpc/proto/ping_pong.proto
 
 bin-server:
-	./bin/server
+	./bin/server ${c}

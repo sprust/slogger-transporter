@@ -9,8 +9,7 @@ import (
 )
 
 type Server struct {
-	rpcPort   string
-	functions []any
+	rpcPort string
 }
 
 func NewServer(rpcPort string) *Server {
