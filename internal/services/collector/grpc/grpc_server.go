@@ -8,7 +8,6 @@ import (
 	"slogger-transporter/internal/services/collector"
 	"slogger-transporter/internal/services/collector/grpc/gen/services/ping_pong_gen"
 	"slogger-transporter/internal/services/collector/grpc/gen/services/trace_collector_gen"
-	"slogger-transporter/internal/services/collector/grpc/ping_pong"
 )
 
 type Server struct {
@@ -60,7 +59,7 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) registerPingPongServer(grpcServer *grpc.Server) error {
-	ping_pong_gen.RegisterPingPongServer(grpcServer, ping_pong.NewPingPongServer())
+	ping_pong_gen.RegisterPingPongServer(grpcServer, collector.NewPingPongServer())
 
 	return nil
 }

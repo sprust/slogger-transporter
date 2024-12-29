@@ -1,4 +1,4 @@
-package ping_pong
+package collector
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package ping_pong_test
+package collector_test
 
 import (
 	"context"
