@@ -6,16 +6,18 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"log/slog"
-	gen "slogger-transporter/internal/grpc/gen/services/trace_collector_gen"
+	"slogger-transporter/internal/app"
+	gen "slogger-transporter/internal/services/collector/grpc/gen/services/trace_collector_gen"
 	"time"
 )
 
 type Collector struct {
+	app    *app.App
 	client gen.TraceCollectorClient
 	gen.UnimplementedTraceCollectorServer
 }
 
-func NewCollector(sloggerGrpcUrl string) (*Collector, error) {
+func NewCollectorServer(app *app.App, sloggerGrpcUrl string) (*Collector, error) {
 	options := grpc.WithTransportCredentials(insecure.NewCredentials())
 
 	client, err := grpc.NewClient(sloggerGrpcUrl, options)
@@ -24,7 +26,7 @@ func NewCollector(sloggerGrpcUrl string) (*Collector, error) {
 		return nil, err
 	}
 
-	return &Collector{client: gen.NewTraceCollectorClient(client)}, nil
+	return &Collector{app: app, client: gen.NewTraceCollectorClient(client)}, nil
 }
 
 func (c *Collector) Create(ctx context.Context, in *gen.TraceCreateRequest) (*gen.TraceCollectorResponse, error) {
@@ -39,7 +41,7 @@ func (c *Collector) Create(ctx context.Context, in *gen.TraceCreateRequest) (*ge
 
 		response, err := client.Create(context.WithoutCancel(ctx), in)
 
-		messagePrefix := "Create: " + time.Since(start).String()
+		messagePrefix := "grpc[Collector.Create]: " + time.Since(start).String()
 
 		if err != nil {
 			slog.Error(messagePrefix + ": " + err.Error())
@@ -65,7 +67,7 @@ func (c *Collector) Update(ctx context.Context, in *gen.TraceUpdateRequest) (*ge
 
 		response, err := client.Update(context.WithoutCancel(ctx), in)
 
-		messagePrefix := "Update: " + time.Since(start).String()
+		messagePrefix := "grpc[Collector.Update]: " + time.Since(start).String()
 
 		if err != nil {
 			slog.Error(messagePrefix + ": " + err.Error())

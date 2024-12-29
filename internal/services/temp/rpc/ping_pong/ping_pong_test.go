@@ -5,7 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/rpc"
 	"os"
-	"slogger-transporter/internal/rpc/ping_pong"
+	"slogger-transporter/internal/services/temp/rpc/ping_pong"
 	"testing"
 	"time"
 )

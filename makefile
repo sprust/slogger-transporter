@@ -16,10 +16,13 @@ restart:
 	make up
 
 run:
-	go run ./internal/server.go ${c}
+	go run main.go ${c}
+
+run-serve-grpc:
+	go run main.go serve:grpc
 
 build:
-	go build -o ./bin/ internal/server.go
+	go build -o ./bin/ main.go
 
 test:
 	go test ./...
@@ -33,5 +36,5 @@ grpc-generate:
 			./internal/grpc/proto/*.proto \
 			./internal/grpc/proto/*/*.proto
 
-bin-server:
-	./bin/server ${c}
+bin-serve-grpc:
+	./bin/main serve:grpc

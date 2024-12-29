@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
-	"slogger-transporter/internal/grpc/gen/services/ping_pong_gen"
+	gen "slogger-transporter/internal/services/collector/grpc/gen/services/ping_pong_gen"
 	"testing"
 	"time"
 )
@@ -29,7 +29,7 @@ func TestPingPong_Ping(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	client := ping_pong_gen.NewPingPongClient(conn)
+	client := gen.NewPingPongClient(conn)
 
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
@@ -39,7 +39,7 @@ func TestPingPong_Ping(t *testing.T) {
 
 	message := time.Now().String()
 
-	response, err := client.Ping(context.TODO(), &ping_pong_gen.Request{Message: message})
+	response, err := client.Ping(context.TODO(), &gen.Request{Message: message})
 
 	assert.NoError(t, err)
 
