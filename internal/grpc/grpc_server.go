@@ -4,17 +4,21 @@ import (
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"
-	gen "slogger-transporter/internal/grpc/gen/services/ping_pong_gen"
+	"slogger-transporter/internal/grpc/collector"
+	"slogger-transporter/internal/grpc/gen/services/ping_pong_gen"
+	"slogger-transporter/internal/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/grpc/ping_pong"
 )
 
 type Server struct {
-	rpcPort string
+	rpcPort        string
+	sloggerGrpcUrl string
 }
 
-func NewServer(rpcPort string) *Server {
+func NewServer(rpcPort string, sloggerGrpcUrl string) *Server {
 	return &Server{
-		rpcPort: rpcPort,
+		rpcPort:        rpcPort,
+		sloggerGrpcUrl: sloggerGrpcUrl,
 	}
 }
 
@@ -31,7 +35,17 @@ func (s *Server) Run() error {
 
 	grpcServer := grpc.NewServer()
 
-	gen.RegisterPingPongServer(grpcServer, &ping_pong.PingPongServer{})
+	ping_pong_gen.RegisterPingPongServer(grpcServer, &ping_pong.PingPongServer{})
+
+	collectorServer, err := collector.NewCollector(s.sloggerGrpcUrl)
+
+	if err != nil {
+		slog.Error("Error creating collector: ", err.Error())
+
+		return err
+	}
+
+	trace_collector_gen.RegisterTraceCollectorServer(grpcServer, collectorServer)
 
 	err = grpcServer.Serve(listener)
 

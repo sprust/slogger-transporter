@@ -50,8 +50,9 @@ func main() {
 		}
 	} else {
 		grpcPort := os.Getenv("GRPC_PORT")
+		sloggerGrpcUrl := os.Getenv("SLOGGER_SERVER_GRPC_URL")
 
-		server := grpc.NewServer(grpcPort)
+		server := grpc.NewServer(grpcPort, sloggerGrpcUrl)
 
 		err := server.Run()
 

@@ -30,7 +30,8 @@ test-detail:
 grpc-generate:
 	protoc --go_out=./internal/grpc/gen/ \
 		--go-grpc_out=./internal/grpc/gen/ \
-			./internal/grpc/proto/ping_pong.proto
+			./internal/grpc/proto/*.proto \
+			./internal/grpc/proto/*/*.proto
 
 bin-server:
 	./bin/server ${c}
