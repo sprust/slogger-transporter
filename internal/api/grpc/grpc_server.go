@@ -88,7 +88,13 @@ func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
 }
 
 func (s *Server) registerTraceTransporterServer(grpcServer *grpc.Server) error {
-	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, trace_transporter.NewServer())
+	transporterServer, err := trace_transporter.NewServer(s.app, s.sloggerGrpcUrl)
+
+	if err != nil {
+		return err
+	}
+
+	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, transporterServer)
 
 	return nil
 }
