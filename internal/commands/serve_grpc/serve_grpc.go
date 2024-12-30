@@ -2,8 +2,8 @@ package serve_grpc
 
 import (
 	"os"
+	"slogger-transporter/internal/api/grpc"
 	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/collector/grpc"
 )
 
 type ServeGrpcCommand struct {

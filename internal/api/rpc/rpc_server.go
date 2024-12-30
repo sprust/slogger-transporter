@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net"
 	"net/rpc"
-	"slogger-transporter/internal/services/temp/rpc/ping_pong"
+	"slogger-transporter/internal/api/rpc/ping_pong"
 )
 
 var functions = []any{

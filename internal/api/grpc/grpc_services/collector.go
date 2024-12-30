@@ -1,4 +1,4 @@
-package collector
+package grpc_services
 
 import (
 	"context"
@@ -6,15 +6,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"log/slog"
+	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/app"
-	gen "slogger-transporter/internal/services/collector/grpc/gen/services/trace_collector_gen"
 	"time"
 )
 
 type Collector struct {
 	app    *app.App
-	client gen.TraceCollectorClient
-	gen.UnimplementedTraceCollectorServer
+	client trace_collector_gen.TraceCollectorClient
+	trace_collector_gen.UnimplementedTraceCollectorServer
 }
 
 func NewCollectorServer(app *app.App, sloggerGrpcUrl string) (*Collector, error) {
@@ -26,11 +26,11 @@ func NewCollectorServer(app *app.App, sloggerGrpcUrl string) (*Collector, error)
 		return nil, err
 	}
 
-	return &Collector{app: app, client: gen.NewTraceCollectorClient(client)}, nil
+	return &Collector{app: app, client: trace_collector_gen.NewTraceCollectorClient(client)}, nil
 }
 
-func (c *Collector) Create(ctx context.Context, in *gen.TraceCreateRequest) (*gen.TraceCollectorResponse, error) {
-	go func(ctx context.Context, in *gen.TraceCreateRequest, client gen.TraceCollectorClient) {
+func (c *Collector) Create(ctx context.Context, in *trace_collector_gen.TraceCreateRequest) (*trace_collector_gen.TraceCollectorResponse, error) {
+	go func(ctx context.Context, in *trace_collector_gen.TraceCreateRequest, client trace_collector_gen.TraceCollectorClient) {
 		start := time.Now()
 
 		md, ok := metadata.FromIncomingContext(ctx)
@@ -52,11 +52,11 @@ func (c *Collector) Create(ctx context.Context, in *gen.TraceCreateRequest) (*ge
 		slog.Info(messagePrefix + ": " + response.Message)
 	}(ctx, in, c.client)
 
-	return &gen.TraceCollectorResponse{StatusCode: 200, Message: "ok"}, nil
+	return &trace_collector_gen.TraceCollectorResponse{StatusCode: 200, Message: "ok"}, nil
 }
 
-func (c *Collector) Update(ctx context.Context, in *gen.TraceUpdateRequest) (*gen.TraceCollectorResponse, error) {
-	go func(ctx context.Context, in *gen.TraceUpdateRequest, client gen.TraceCollectorClient) {
+func (c *Collector) Update(ctx context.Context, in *trace_collector_gen.TraceUpdateRequest) (*trace_collector_gen.TraceCollectorResponse, error) {
+	go func(ctx context.Context, in *trace_collector_gen.TraceUpdateRequest, client trace_collector_gen.TraceCollectorClient) {
 		start := time.Now()
 
 		md, ok := metadata.FromIncomingContext(ctx)
@@ -78,5 +78,5 @@ func (c *Collector) Update(ctx context.Context, in *gen.TraceUpdateRequest) (*ge
 		slog.Info(messagePrefix + ": " + response.Message)
 	}(ctx, in, c.client)
 
-	return &gen.TraceCollectorResponse{StatusCode: 200, Message: "ok"}, nil
+	return &trace_collector_gen.TraceCollectorResponse{StatusCode: 200, Message: "ok"}, nil
 }

@@ -2,8 +2,8 @@ package serve_rpc
 
 import (
 	"os"
+	"slogger-transporter/internal/api/rpc"
 	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/temp/rpc"
 )
 
 type ServeRpcCommand struct {

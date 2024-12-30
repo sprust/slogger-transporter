@@ -1,11 +1,10 @@
-package ping_pong_test
+package ping_pong
 
 import (
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"net/rpc"
 	"os"
-	"slogger-transporter/internal/services/temp/rpc/ping_pong"
 	"testing"
 	"time"
 )
@@ -33,11 +32,11 @@ func TestPingPong_Ping(t *testing.T) {
 
 	message := time.Now().String()
 
-	args := ping_pong.PingPongArgs{
+	args := PingPongArgs{
 		Message: message,
 	}
 
-	var result ping_pong.PingPongResult
+	var result PingPongResult
 
 	err = client.Call("PingPong.Ping", args, &result)
 
