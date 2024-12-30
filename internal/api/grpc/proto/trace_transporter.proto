@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package slogger_transporter;
+
+option go_package = "services/trace_transporter_gen";
+
+service TraceTransporter {
+  rpc Create(TraceTransporterCreateRequest) returns (TraceTransporterResponse) {}
+  rpc Update(TraceTransporterUpdateRequest) returns (TraceTransporterResponse) {}
+}
+
+message TraceTransporterCreateRequest {
+  string payload = 1;
+}
+
+message TraceTransporterUpdateRequest {
+  string payload = 1;
+}
+
+message TraceTransporterResponse {
+  bool success = 1;
+}

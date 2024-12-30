@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.12.4
-// source: internal/grpc/proto/external/collector.proto
+// source: internal/api/grpc/proto/trace_collector.proto
 
 package trace_collector_gen
 
@@ -155,5 +155,5 @@ var TraceCollector_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/grpc/proto/external/collector.proto",
+	Metadata: "internal/api/grpc/proto/trace_collector.proto",
 }

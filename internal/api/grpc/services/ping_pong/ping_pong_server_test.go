@@ -1,4 +1,4 @@
-package grpc_services
+package ping_pong
 
 import (
 	"context"
@@ -39,7 +39,7 @@ func TestPingPong_Ping(t *testing.T) {
 
 	message := time.Now().String()
 
-	response, err := client.Ping(context.TODO(), &ping_pong_gen.Request{Message: message})
+	response, err := client.Ping(context.TODO(), &ping_pong_gen.PingPongPingRequest{Message: message})
 
 	assert.NoError(t, err)
 

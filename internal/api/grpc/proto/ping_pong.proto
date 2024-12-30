@@ -5,13 +5,13 @@ package slogger_transporter;
 option go_package = "services/ping_pong_gen";
 
 service PingPong {
-  rpc Ping(Request) returns (Response) {}
+  rpc Ping(PingPongPingRequest) returns (PingPongPingResponse) {}
 }
 
-message Request {
+message PingPongPingRequest {
   string message = 1;
 }
 
-message Response {
+message PingPongPingResponse {
   string message = 1;
 }

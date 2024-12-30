@@ -6,7 +6,10 @@ import (
 	"net"
 	"slogger-transporter/internal/api/grpc/gen/services/ping_pong_gen"
 	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
-	"slogger-transporter/internal/api/grpc/grpc_services"
+	"slogger-transporter/internal/api/grpc/gen/services/trace_transporter_gen"
+	"slogger-transporter/internal/api/grpc/services/ping_pong"
+	"slogger-transporter/internal/api/grpc/services/trace_collector"
+	"slogger-transporter/internal/api/grpc/services/trace_transporter"
 	"slogger-transporter/internal/app"
 )
 
@@ -39,6 +42,12 @@ func (s *Server) Run() error {
 		return err
 	}
 
+	err = s.registerTraceTransporterServer(grpcServer)
+
+	if err != nil {
+		return err
+	}
+
 	listener, err := net.Listen("tcp", ":"+s.rpcPort)
 
 	if err != nil {
@@ -59,13 +68,13 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) registerPingPongServer(grpcServer *grpc.Server) error {
-	ping_pong_gen.RegisterPingPongServer(grpcServer, grpc_services.NewPingPongServer())
+	ping_pong_gen.RegisterPingPongServer(grpcServer, ping_pong.NewServer())
 
 	return nil
 }
 
 func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
-	collectorServer, err := grpc_services.NewCollectorServer(s.app, s.sloggerGrpcUrl)
+	collectorServer, err := trace_collector.NewServer(s.app, s.sloggerGrpcUrl)
 
 	if err != nil {
 		slog.Error("Error creating collector: ", err.Error())
@@ -74,6 +83,12 @@ func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
 	}
 
 	trace_collector_gen.RegisterTraceCollectorServer(grpcServer, collectorServer)
+
+	return nil
+}
+
+func (s *Server) registerTraceTransporterServer(grpcServer *grpc.Server) error {
+	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, trace_transporter.NewServer())
 
 	return nil
 }

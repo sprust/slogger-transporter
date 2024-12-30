@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.12.4
-// source: internal/grpc/proto/ping_pong.proto
+// source: internal/api/grpc/proto/ping_pong.proto
 
 package ping_pong_gen
 
@@ -26,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PingPongClient interface {
-	Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	Ping(ctx context.Context, in *PingPongPingRequest, opts ...grpc.CallOption) (*PingPongPingResponse, error)
 }
 
 type pingPongClient struct {
@@ -37,9 +37,9 @@ func NewPingPongClient(cc grpc.ClientConnInterface) PingPongClient {
 	return &pingPongClient{cc}
 }
 
-func (c *pingPongClient) Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+func (c *pingPongClient) Ping(ctx context.Context, in *PingPongPingRequest, opts ...grpc.CallOption) (*PingPongPingResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Response)
+	out := new(PingPongPingResponse)
 	err := c.cc.Invoke(ctx, PingPong_Ping_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (c *pingPongClient) Ping(ctx context.Context, in *Request, opts ...grpc.Cal
 // All implementations must embed UnimplementedPingPongServer
 // for forward compatibility.
 type PingPongServer interface {
-	Ping(context.Context, *Request) (*Response, error)
+	Ping(context.Context, *PingPongPingRequest) (*PingPongPingResponse, error)
 	mustEmbedUnimplementedPingPongServer()
 }
 
@@ -62,7 +62,7 @@ type PingPongServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPingPongServer struct{}
 
-func (UnimplementedPingPongServer) Ping(context.Context, *Request) (*Response, error) {
+func (UnimplementedPingPongServer) Ping(context.Context, *PingPongPingRequest) (*PingPongPingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 func (UnimplementedPingPongServer) mustEmbedUnimplementedPingPongServer() {}
@@ -87,7 +87,7 @@ func RegisterPingPongServer(s grpc.ServiceRegistrar, srv PingPongServer) {
 }
 
 func _PingPong_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+	in := new(PingPongPingRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func _PingPong_Ping_Handler(srv interface{}, ctx context.Context, dec func(inter
 		FullMethod: PingPong_Ping_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PingPongServer).Ping(ctx, req.(*Request))
+		return srv.(PingPongServer).Ping(ctx, req.(*PingPongPingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -117,5 +117,5 @@ var PingPong_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/grpc/proto/ping_pong.proto",
+	Metadata: "internal/api/grpc/proto/ping_pong.proto",
 }

@@ -31,10 +31,9 @@ test-detail:
 	go test -v ./...
 
 grpc-generate:
-	protoc --go_out=./internal/grpc/gen/ \
-		--go-grpc_out=./internal/grpc/gen/ \
-			./internal/grpc/proto/*.proto \
-			./internal/grpc/proto/*/*.proto
+	protoc --go_out=./internal/api/grpc/gen/ \
+		--go-grpc_out=./internal/api/grpc/gen/ \
+			./internal/api/grpc/proto/*.proto
 
 bin-serve-grpc:
 	./bin/main serve:grpc
