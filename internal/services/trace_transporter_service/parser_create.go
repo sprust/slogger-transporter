@@ -1,4 +1,4 @@
-package trace_transporter_parsers
+package trace_transporter_service
 
 import (
 	"encoding/json"

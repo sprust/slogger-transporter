@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"google.golang.org/grpc"
+	"io"
 	"log/slog"
 	"net"
 	"slogger-transporter/internal/api/grpc/gen/services/ping_pong_gen"
@@ -17,6 +18,8 @@ type Server struct {
 	app            *app.App
 	rpcPort        string
 	sloggerGrpcUrl string
+	grpcServer     *grpc.Server
+	servers        []io.Closer
 }
 
 func NewServer(app *app.App, rpcPort string, sloggerGrpcUrl string) *Server {
@@ -28,21 +31,21 @@ func NewServer(app *app.App, rpcPort string, sloggerGrpcUrl string) *Server {
 }
 
 func (s *Server) Run() error {
-	grpcServer := grpc.NewServer()
+	s.grpcServer = grpc.NewServer()
 
-	err := s.registerPingPongServer(grpcServer)
-
-	if err != nil {
-		return err
-	}
-
-	err = s.registerTraceCollectorServer(grpcServer)
+	err := s.registerPingPongServer(s.grpcServer)
 
 	if err != nil {
 		return err
 	}
 
-	err = s.registerTraceTransporterServer(grpcServer)
+	err = s.registerTraceCollectorServer(s.grpcServer)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.registerTraceTransporterServer(s.grpcServer)
 
 	if err != nil {
 		return err
@@ -58,7 +61,7 @@ func (s *Server) Run() error {
 
 	slog.Info("Listening on " + s.rpcPort)
 
-	err = grpcServer.Serve(listener)
+	err = s.grpcServer.Serve(listener)
 
 	if err != nil {
 		slog.Error("Error serving: ", err.Error())
@@ -67,8 +70,32 @@ func (s *Server) Run() error {
 	return err
 }
 
+func (s *Server) Close() error {
+	if s.grpcServer == nil {
+		return nil
+	}
+
+	slog.Info("Closing server")
+
+	for _, server := range s.servers {
+		err := server.Close()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	s.grpcServer.Stop()
+
+	return nil
+}
+
 func (s *Server) registerPingPongServer(grpcServer *grpc.Server) error {
-	ping_pong_gen.RegisterPingPongServer(grpcServer, ping_pong.NewServer())
+	server := ping_pong.NewServer()
+
+	ping_pong_gen.RegisterPingPongServer(grpcServer, server)
+
+	s.servers = append(s.servers, server)
 
 	return nil
 }
@@ -84,6 +111,8 @@ func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
 
 	trace_collector_gen.RegisterTraceCollectorServer(grpcServer, collectorServer)
 
+	s.servers = append(s.servers, collectorServer)
+
 	return nil
 }
 
@@ -95,6 +124,8 @@ func (s *Server) registerTraceTransporterServer(grpcServer *grpc.Server) error {
 	}
 
 	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, transporterServer)
+
+	s.servers = append(s.servers, transporterServer)
 
 	return nil
 }

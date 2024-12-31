@@ -19,3 +19,7 @@ func (p *Server) Ping(ctx context.Context, in *gen.PingPongPingRequest) (*gen.Pi
 
 	return &gen.PingPongPingResponse{Message: in.Message}, nil
 }
+
+func (p *Server) Close() error {
+	return nil
+}

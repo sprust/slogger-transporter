@@ -20,7 +20,7 @@ func main() {
 			fmt.Printf(" %s %s - %s\n", key, command.Parameters(), command.Title())
 		}
 
-		return
+		os.Exit(0)
 	}
 
 	if err := godotenv.Load(); err != nil {
@@ -42,4 +42,6 @@ func main() {
 	}
 
 	fmt.Println("Done")
+
+	os.Exit(0)
 }

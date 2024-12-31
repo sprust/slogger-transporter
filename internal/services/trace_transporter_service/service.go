@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
-	"slogger-transporter/internal/api/grpc/services/trace_transporter/trace_transporter_parsers"
 	"slogger-transporter/internal/app"
 	"time"
 )
@@ -13,8 +12,8 @@ import (
 type Service struct {
 	app          *app.App
 	client       *trace_collector.Client
-	parserCreate *trace_transporter_parsers.ParserCreate
-	parserUpdate *trace_transporter_parsers.ParserUpdate
+	parserCreate *ParserCreate
+	parserUpdate *ParserUpdate
 }
 
 func NewService(app *app.App, sloggerUrl string) (*Service, error) {
@@ -27,8 +26,8 @@ func NewService(app *app.App, sloggerUrl string) (*Service, error) {
 	return &Service{
 		app:          app,
 		client:       client,
-		parserCreate: trace_transporter_parsers.NewParserCreate(),
-		parserUpdate: trace_transporter_parsers.NewParserUpdate(),
+		parserCreate: NewParserCreate(),
+		parserUpdate: NewParserUpdate(),
 	}, nil
 }
 

@@ -80,3 +80,7 @@ func (c *Server) Update(ctx context.Context, in *gen.TraceUpdateRequest) (*gen.T
 
 	return &gen.TraceCollectorResponse{StatusCode: 200, Message: "ok"}, nil
 }
+
+func (p *Server) Close() error {
+	return nil
+}
