@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/joho/godotenv"
+	"log/slog"
 	"os"
+	"os/signal"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
+	"syscall"
 )
 
 func main() {
@@ -35,13 +38,27 @@ func main() {
 
 	newApp := app.NewApp(context.Background())
 
+	signals := make(chan os.Signal)
+
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-signals
+
+		err = newApp.Close()
+
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	err = command.Handle(&newApp, args[2:])
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Done")
+	slog.Info("Exit")
 
 	os.Exit(0)
 }

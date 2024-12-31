@@ -4,10 +4,12 @@ import (
 	"errors"
 	"slogger-transporter/internal/commands/serve_grpc"
 	"slogger-transporter/internal/commands/serve_rpc"
+	"slogger-transporter/internal/commands/stop_grpc"
 )
 
 var commands = map[string]CommandInterface{
 	"serve:grpc": &serve_grpc.ServeGrpcCommand{},
+	"grpc:stop":  &stop_grpc.GrpcStopCommand{},
 	"serve:rpc":  &serve_rpc.ServeRpcCommand{},
 }
 
