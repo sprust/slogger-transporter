@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/rpc"
 	"slogger-transporter/internal/api/rpc/ping_pong"
+	"slogger-transporter/internal/app"
 )
 
 var functions = []any{
@@ -12,16 +13,23 @@ var functions = []any{
 }
 
 type Server struct {
-	rpcPort string
+	app      *app.App
+	rpcPort  string
+	listener net.Listener
 }
 
-func NewServer(rpcPort string) *Server {
-	return &Server{
+func NewServer(app *app.App, rpcPort string) *Server {
+	server := &Server{
+		app:     app,
 		rpcPort: rpcPort,
 	}
+
+	app.AddCloseListener(server)
+
+	return server
 }
 
-func (srv *Server) Run() error {
+func (s *Server) Run() error {
 	for _, function := range functions {
 		err := rpc.Register(function)
 
@@ -32,7 +40,7 @@ func (srv *Server) Run() error {
 		}
 	}
 
-	listener, err := net.Listen("tcp", ":"+srv.rpcPort)
+	listener, err := net.Listen("tcp", ":"+s.rpcPort)
 
 	if err != nil {
 		slog.Error("Error listening:", err.Error())
@@ -40,19 +48,19 @@ func (srv *Server) Run() error {
 		return err
 	}
 
-	defer func(listener net.Listener) {
-		err := listener.Close()
+	s.listener = listener
 
-		if err == nil {
-			return
-		}
+	slog.Info("Listening on port " + s.rpcPort)
 
-		panic(err)
-	}(listener)
-
-	slog.Info("Listening on port " + srv.rpcPort)
-
-	rpc.Accept(listener)
+	rpc.Accept(s.listener)
 
 	return nil
+}
+
+func (s *Server) Close() error {
+	if s.listener == nil {
+		return nil
+	}
+
+	return s.listener.Close()
 }

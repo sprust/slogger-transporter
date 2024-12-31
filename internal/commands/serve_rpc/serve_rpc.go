@@ -20,7 +20,7 @@ func (c *ServeRpcCommand) Parameters() string {
 func (c *ServeRpcCommand) Handle(app *app.App, arguments []string) error {
 	rpcPort := os.Getenv("RPC_PORT")
 
-	server := rpc.NewServer(rpcPort)
+	server := rpc.NewServer(app, rpcPort)
 
 	err := server.Run()
 
