@@ -7,10 +7,11 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_transporter_gen"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/trace_transporter_service"
+	"strconv"
 	"time"
 )
 
-const waitingWorkersEndingInSeconds = 7
+const waitingWorkersEndingInSeconds = 10
 
 type Server struct {
 	app                *app.App
@@ -46,21 +47,9 @@ func (s *Server) Update(
 	ctx context.Context,
 	in *gen.TraceTransporterUpdateRequest,
 ) (*gen.TraceTransporterResponse, error) {
-	if s.closing {
-		return &gen.TraceTransporterResponse{Success: false}, nil
-	}
-
-	s.workersCount += 1
-
-	go func() {
-		defer func() {
-			s.workersCount -= 1
-		}()
-
-		s.transporterService.Update(s.prepareContext(ctx), in.Payload)
-	}()
-
-	return &gen.TraceTransporterResponse{Success: true}, nil
+	return s.handle(ctx, func(ctx context.Context) {
+		s.transporterService.Update(ctx, in.Payload)
+	})
 }
 
 func (s *Server) Close() error {
@@ -73,7 +62,7 @@ func (s *Server) Close() error {
 	start := time.Now()
 
 	if s.workersCount > 0 {
-		slog.Info("Waiting for workers to finish...")
+		slog.Info("Waiting for workers to finish " + strconv.Itoa(waitingWorkersEndingInSeconds) + " seconds...")
 
 		for s.workersCount > 0 {
 			time.Sleep(1 * time.Second)
