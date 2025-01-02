@@ -2,10 +2,12 @@ package trace_transporter_service
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/app"
+	"strconv"
 	"time"
 )
 
@@ -31,7 +33,7 @@ func NewService(app *app.App, sloggerUrl string) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) Create(ctx context.Context, payload string) {
+func (s *Service) Create(ctx context.Context, payload string) error {
 	messagePrefix := "grpc[TraceTransporter.Create]: "
 
 	err := s.send(
@@ -55,14 +57,10 @@ func (s *Service) Create(ctx context.Context, payload string) {
 		},
 	)
 
-	if err == nil {
-		return
-	}
-
-	// TODO: to queue
+	return err
 }
 
-func (s *Service) Update(ctx context.Context, payload string) {
+func (s *Service) Update(ctx context.Context, payload string) error {
 	messagePrefix := "grpc[TraceTransporter.Update]: "
 
 	err := s.send(
@@ -86,11 +84,7 @@ func (s *Service) Update(ctx context.Context, payload string) {
 		},
 	)
 
-	if err == nil {
-		return
-	}
-
-	// TODO: to queue
+	return err
 }
 
 func (s *Service) Close() error {
@@ -113,6 +107,12 @@ func (s *Service) send(
 		slog.Error(messagePrefix + ": " + err.Error())
 
 		return err
+	}
+
+	if response.GetStatusCode() != 200 {
+		return errors.New(
+			"status code: " + strconv.Itoa(int(response.StatusCode)) + ", message: " + response.Message,
+		)
 	}
 
 	slog.Info(messagePrefix + ": " + response.Message)
