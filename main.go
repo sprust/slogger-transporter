@@ -18,7 +18,27 @@ func init() {
 		panic(err)
 	}
 
-	err := logging_service.Init()
+	logLevel := os.Getenv("LOG_LEVEL")
+
+	var slogLevel slog.Level
+
+	if logLevel != "" {
+		switch logLevel {
+		case "any":
+		case "debug":
+			slogLevel = slog.LevelDebug
+		case "info":
+			slogLevel = slog.LevelInfo
+		case "warn":
+			slogLevel = slog.LevelWarn
+		case "error":
+			slogLevel = slog.LevelError
+		default:
+			panic(fmt.Errorf("unknown log level: %s", logLevel))
+		}
+	}
+
+	err := logging_service.Init(slogLevel)
 
 	if err != nil {
 		panic(err)
@@ -26,24 +46,6 @@ func init() {
 }
 
 func main() {
-	logLevel := os.Getenv("LOG_LEVEL")
-
-	if logLevel != "" {
-		switch logLevel {
-		case "any":
-		case "debug":
-			slog.SetLogLoggerLevel(slog.LevelDebug)
-		case "info":
-			slog.SetLogLoggerLevel(slog.LevelInfo)
-		case "warn":
-			slog.SetLogLoggerLevel(slog.LevelWarn)
-		case "error":
-			slog.SetLogLoggerLevel(slog.LevelError)
-		default:
-			panic(fmt.Errorf("unknown log level: %s", logLevel))
-		}
-	}
-
 	args := os.Args
 	argsLen := len(args)
 

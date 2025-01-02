@@ -11,10 +11,18 @@ type CustomHandler struct {
 	consoleHandler slog.Handler
 }
 
-func NewCustomHandler(file *os.File, console *os.File) *CustomHandler {
+func NewCustomHandler(slogLevel slog.Level, file *os.File, console *os.File) *CustomHandler {
+	var opts *slog.HandlerOptions
+
+	if slogLevel != 0 {
+		opts = &slog.HandlerOptions{
+			Level: slogLevel,
+		}
+	}
+
 	return &CustomHandler{
-		fileHandler:    slog.NewJSONHandler(file, nil),
-		consoleHandler: slog.NewTextHandler(console, nil),
+		fileHandler:    slog.NewJSONHandler(file, opts),
+		consoleHandler: slog.NewTextHandler(console, opts),
 	}
 }
 

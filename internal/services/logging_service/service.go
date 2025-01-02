@@ -14,7 +14,7 @@ var (
 	directory = "logs"
 )
 
-func Init() error {
+func Init(slogLevel slog.Level) error {
 	if err := os.MkdirAll(directory, 0755); err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func Init() error {
 		}
 	}()
 
-	customHandler := NewCustomHandler(logFile, os.Stdout)
+	customHandler := NewCustomHandler(slogLevel, logFile, os.Stdout)
 
 	logger := slog.New(customHandler)
 
