@@ -9,11 +9,18 @@ import (
 	"os/signal"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
+	"slogger-transporter/internal/services/logging_service"
 	"syscall"
 )
 
 func init() {
 	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
+
+	err := logging_service.Init()
+
+	if err != nil {
 		panic(err)
 	}
 }
