@@ -12,7 +12,31 @@ import (
 	"syscall"
 )
 
+func init() {
+	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
+}
+
 func main() {
+	logLevel := os.Getenv("LOG_LEVEL")
+
+	if logLevel != "" {
+		switch logLevel {
+		case "any":
+		case "debug":
+			slog.SetLogLoggerLevel(slog.LevelDebug)
+		case "info":
+			slog.SetLogLoggerLevel(slog.LevelInfo)
+		case "warn":
+			slog.SetLogLoggerLevel(slog.LevelWarn)
+		case "error":
+			slog.SetLogLoggerLevel(slog.LevelError)
+		default:
+			panic(fmt.Errorf("unknown log level: %s", logLevel))
+		}
+	}
+
 	args := os.Args
 	argsLen := len(args)
 
@@ -24,10 +48,6 @@ func main() {
 		}
 
 		os.Exit(0)
-	}
-
-	if err := godotenv.Load(); err != nil {
-		panic(err)
 	}
 
 	command, err := commands.GetCommand(args[1])
