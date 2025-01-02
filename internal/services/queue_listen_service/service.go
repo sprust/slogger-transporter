@@ -9,19 +9,24 @@ import (
 	"log/slog"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/trace_transporter_service"
+	"strconv"
 	"sync"
 	"time"
 )
 
-var maxTries = 120
-var delay = 1 * time.Second
+const (
+	maxTries                      = 120
+	delay                         = 1 * time.Second
+	waitingWorkersEndingInSeconds = 10
+)
 
 type Service struct {
 	app                *app.App
 	rmqParams          *RmqParams
 	transporterService *trace_transporter_service.Service
-	closing            bool
 	connections        map[int]*amqp.Connection
+	closing            bool
+	retryingCount      int
 }
 
 type RmqParams struct {
@@ -75,6 +80,24 @@ func (s *Service) Listen() error {
 	}
 
 	waitGroup.Wait()
+
+	if s.retryingCount > 0 {
+		start := time.Now()
+
+		slog.Info("Waiting for jobs to finish " + strconv.Itoa(waitingWorkersEndingInSeconds) + " seconds...")
+
+		for s.retryingCount > 0 {
+			time.Sleep(1 * time.Second)
+
+			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
+				slog.Info("Force closing jobs...")
+
+				break
+			}
+		}
+
+		slog.Info("Jobs finished")
+	}
 
 	return nil
 }
@@ -139,88 +162,8 @@ func (s *Service) startWorker(workerId int) {
 			continue
 		}
 
-		for d := range messages {
-			slog.Info(fmt.Sprintf("Worker %d: received a message: len %d", workerId, len(d.Body)))
-
-			var message Message
-
-			err = json.Unmarshal(d.Body, &message)
-
-			if err != nil {
-				slog.Error(fmt.Sprintf("Worker %d: unmarshal error: %s", workerId, err.Error()))
-
-				continue
-			}
-
-			go func(message *Message) {
-				md := metadata.New(map[string]string{
-					"authorization": "Bearer " + message.Token,
-				})
-
-				ctx := context.WithoutCancel(s.app.GetContext())
-
-				ctx = metadata.NewOutgoingContext(ctx, md)
-
-				var errResult error
-
-				if message.Action == "push" {
-					errResult = s.transporterService.Create(ctx, message.Payload)
-				} else if message.Action == "stop" {
-					errResult = s.transporterService.Update(ctx, message.Payload)
-				} else {
-					slog.Error(fmt.Sprintf("Worker %d: unknown action: %s", workerId, message.Action))
-
-					return
-				}
-
-				if errResult == nil {
-					return
-				}
-
-				slog.Error(fmt.Sprintf("Worker %d: error: %s", workerId, errResult.Error()))
-
-				message.Tries += 1
-
-				if message.Tries > maxTries {
-					slog.Error(fmt.Sprintf("Worker %d: retry: max tries reached", workerId))
-
-					return
-				}
-
-				slog.Info(fmt.Sprintf("Worker %d: retry: tries %d", workerId, message.Tries))
-
-				go func(message *Message, channel *amqp.Channel) {
-					payload, err := json.Marshal(message)
-
-					if err != nil {
-						slog.Error(fmt.Sprintf("Worker %d: retry: marshal error: %s", workerId, err.Error()))
-
-						return
-					}
-
-					time.Sleep(1 * time.Second)
-
-					err = channel.Publish(
-						"",
-						s.rmqParams.QueueName,
-						false,
-						false,
-						amqp.Publishing{
-							ContentType: "application/json",
-							Body:        payload,
-							Expiration:  fmt.Sprintf("%d", delay),
-						},
-					)
-
-					if err != nil {
-						slog.Error(fmt.Sprintf("Retry: publish error: %s", err.Error()))
-
-						return
-					}
-
-					slog.Info(fmt.Sprintf("Worker %d: retry: published", workerId))
-				}(message, channel)
-			}(&message)
+		for delivery := range messages {
+			s.handleDelivery(workerId, channel, delivery)
 		}
 
 		_ = connection.Close()
@@ -270,4 +213,92 @@ func (s *Service) declareQueues() error {
 	)
 
 	return err
+}
+
+func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery amqp.Delivery) {
+	slog.Info(fmt.Sprintf("Worker %d: received a message: len %d", workerId, len(delivery.Body)))
+
+	var message Message
+
+	err := json.Unmarshal(delivery.Body, &message)
+
+	if err != nil {
+		slog.Error(fmt.Sprintf("Worker %d: unmarshal error: %s", workerId, err.Error()))
+
+		return
+	}
+
+	md := metadata.New(map[string]string{
+		"authorization": "Bearer " + message.Token,
+	})
+
+	ctx := context.WithoutCancel(s.app.GetContext())
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	var errResult error
+
+	if message.Action == "push" {
+		errResult = s.transporterService.Create(ctx, message.Payload)
+	} else if message.Action == "stop" {
+		errResult = s.transporterService.Update(ctx, message.Payload)
+	} else {
+		slog.Error(fmt.Sprintf("Worker %d: unknown action: %s", workerId, message.Action))
+
+		return
+	}
+
+	if errResult == nil {
+		return
+	}
+
+	slog.Error(fmt.Sprintf("Worker %d: error: %s", workerId, errResult.Error()))
+
+	message.Tries += 1
+
+	if message.Tries > maxTries {
+		slog.Error(fmt.Sprintf("Worker %d: retry: max tries reached", workerId))
+
+		return
+	}
+
+	s.retryingCount += 1
+
+	go func() {
+		defer func() {
+			s.retryingCount -= 1
+		}()
+
+		slog.Info(fmt.Sprintf("Worker %d: retry: tries %d", workerId, message.Tries))
+
+		payload, err := json.Marshal(message)
+
+		if err != nil {
+			slog.Error(fmt.Sprintf("Worker %d: retry: marshal error: %s", workerId, err.Error()))
+
+			return
+		}
+
+		time.Sleep(1 * time.Second)
+
+		err = channel.Publish(
+			"",
+			s.rmqParams.QueueName,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType: "application/json",
+				Body:        payload,
+				Expiration:  fmt.Sprintf("%d", delay),
+			},
+		)
+
+		if err != nil {
+			slog.Error(fmt.Sprintf("Retry: publish error: %s", err.Error()))
+
+			return
+		}
+
+		slog.Info(fmt.Sprintf("Worker %d: retry: published", workerId))
+	}()
 }

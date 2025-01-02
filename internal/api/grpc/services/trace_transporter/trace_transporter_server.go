@@ -39,7 +39,7 @@ func (s *Server) Create(
 	in *gen.TraceTransporterCreateRequest,
 ) (*gen.TraceTransporterResponse, error) {
 	return s.handle(ctx, func(ctx context.Context) {
-		s.transporterService.Create(ctx, in.Payload)
+		_ = s.transporterService.Create(ctx, in.Payload)
 	})
 }
 
@@ -48,7 +48,7 @@ func (s *Server) Update(
 	in *gen.TraceTransporterUpdateRequest,
 ) (*gen.TraceTransporterResponse, error) {
 	return s.handle(ctx, func(ctx context.Context) {
-		s.transporterService.Update(ctx, in.Payload)
+		_ = s.transporterService.Update(ctx, in.Payload)
 	})
 }
 
@@ -59,9 +59,9 @@ func (s *Server) Close() error {
 		return nil
 	}
 
-	start := time.Now()
-
 	if s.workersCount > 0 {
+		start := time.Now()
+
 		slog.Info("Waiting for workers to finish " + strconv.Itoa(waitingWorkersEndingInSeconds) + " seconds...")
 
 		for s.workersCount > 0 {
