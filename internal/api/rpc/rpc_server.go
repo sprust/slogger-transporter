@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	goridgeRpc "github.com/roadrunner-server/goridge/v3/pkg/rpc"
 	"log/slog"
 	"net"
 	"net/rpc"
@@ -16,6 +17,7 @@ type Server struct {
 	app      *app.App
 	rpcPort  string
 	listener net.Listener
+	closing  bool
 }
 
 func NewServer(app *app.App, rpcPort string) *Server {
@@ -30,6 +32,14 @@ func NewServer(app *app.App, rpcPort string) *Server {
 }
 
 func (s *Server) Run() error {
+	listener, err := net.Listen("tcp", ":"+s.rpcPort)
+
+	if err != nil {
+		return err
+	}
+
+	s.listener = listener
+
 	for _, function := range functions {
 		err := rpc.Register(function)
 
@@ -40,27 +50,31 @@ func (s *Server) Run() error {
 		}
 	}
 
-	listener, err := net.Listen("tcp", ":"+s.rpcPort)
-
-	if err != nil {
-		slog.Error("Error listening:", err.Error())
-
-		return err
-	}
-
-	s.listener = listener
-
 	slog.Info("Listening on port " + s.rpcPort)
 
-	rpc.Accept(s.listener)
+	for {
+		conn, err := s.listener.Accept()
+
+		if s.closing == true {
+			break
+		}
+
+		if err != nil {
+			slog.Error("Error listening:", err.Error())
+
+			continue
+		}
+
+		_ = conn
+
+		go rpc.ServeCodec(goridgeRpc.NewCodec(conn))
+	}
 
 	return nil
 }
 
 func (s *Server) Close() error {
-	if s.listener == nil {
-		return nil
-	}
+	s.closing = true
 
 	return s.listener.Close()
 }
