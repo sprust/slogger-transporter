@@ -37,7 +37,7 @@ func (c *GrpcStopCommand) Handle(app *app.App, arguments []string) error {
 
 	if err != nil {
 		if strings.Compare(err.Error(), "rpc error: code = Unavailable desc = error reading from server: EOF") == 0 {
-			slog.Info("Grpc server is stopped")
+			slog.Info("Application is stopped")
 
 			return nil
 		}

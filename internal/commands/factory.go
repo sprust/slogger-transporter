@@ -8,11 +8,18 @@ import (
 	"slogger-transporter/internal/commands/stop_grpc"
 )
 
+const (
+	ServeGrpcCommandName   = "serve:grpc"
+	StopGrpcCommandName    = "grpc:stop"
+	ServeRpcCommandName    = "serve:rpc"
+	QueueListenCommandName = "queue:listen"
+)
+
 var commands = map[string]CommandInterface{
-	"serve:grpc":   &serve_grpc.ServeGrpcCommand{},
-	"grpc:stop":    &stop_grpc.GrpcStopCommand{},
-	"serve:rpc":    &serve_rpc.ServeRpcCommand{},
-	"queue:listen": &queue_listen.QueueListenCommand{},
+	ServeGrpcCommandName:   &serve_grpc.ServeGrpcCommand{},
+	StopGrpcCommandName:    &stop_grpc.GrpcStopCommand{},
+	ServeRpcCommandName:    &serve_rpc.ServeRpcCommand{},
+	QueueListenCommandName: &queue_listen.QueueListenCommand{},
 }
 
 func GetCommand(name string) (CommandInterface, error) {

@@ -10,6 +10,7 @@ import (
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
 	"slogger-transporter/internal/services/logging_service"
+	"sync"
 	"syscall"
 )
 
@@ -75,15 +76,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	command, err := commands.GetCommand(args[1])
+	handlingCommands, err := getCommands(args[1])
 
 	if err != nil {
 		panic(err)
 	}
 
 	newApp := app.NewApp(context.Background())
-
-	newApp.AddCloseListener(command)
 
 	signals := make(chan os.Signal)
 
@@ -99,11 +98,49 @@ func main() {
 		}
 	}()
 
-	err = command.Handle(&newApp, args[2:])
+	waitGroup := sync.WaitGroup{}
 
-	if err != nil {
-		panic(err)
+	for _, handlingCommand := range handlingCommands {
+		newApp.AddCloseListener(handlingCommand)
+
+		waitGroup.Add(1)
+
+		go func() {
+			err = handlingCommand.Handle(&newApp, args[2:])
+
+			if err != nil {
+				slog.Error(err.Error())
+			}
+
+			waitGroup.Done()
+		}()
 	}
 
+	waitGroup.Wait()
+
 	slog.Warn("Exit")
+}
+
+func getCommands(commandName string) ([]commands.CommandInterface, error) {
+	var handlingCommands []commands.CommandInterface
+
+	command, err := commands.GetCommand(commandName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	handlingCommands = append(handlingCommands, command)
+
+	if commandName != commands.ServeGrpcCommandName && commandName != commands.StopGrpcCommandName {
+		serveRpcCommand, err := commands.GetCommand(commands.ServeGrpcCommandName)
+
+		if err != nil {
+			panic(err)
+		}
+
+		handlingCommands = append(handlingCommands, serveRpcCommand)
+	}
+
+	return handlingCommands, nil
 }
