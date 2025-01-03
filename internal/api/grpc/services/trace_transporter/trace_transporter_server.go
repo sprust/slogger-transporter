@@ -8,6 +8,7 @@ import (
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/trace_transporter_service"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -17,8 +18,9 @@ type Server struct {
 	app                *app.App
 	transporterService *trace_transporter_service.Service
 	gen.UnimplementedTraceTransporterServer
-	closing      bool
-	workersCount int
+	closing           bool
+	workersCount      int
+	workersCountMutex sync.Mutex
 }
 
 func NewServer(app *app.App, sloggerUrl string) (*Server, error) {
@@ -83,11 +85,11 @@ func (s *Server) handle(ctx context.Context, callback func(ctx context.Context))
 		return &gen.TraceTransporterResponse{Success: false}, nil
 	}
 
-	s.workersCount += 1
+	s.incWorkersCount()
 
 	go func(ctx context.Context) {
 		defer func() {
-			s.workersCount -= 1
+			s.decrWorkersCount()
 		}()
 
 		callback(s.prepareContext(ctx))
@@ -106,4 +108,18 @@ func (s *Server) prepareContext(ctx context.Context) context.Context {
 	}
 
 	return preparedContext
+}
+
+func (s *Server) incWorkersCount() {
+	s.workersCountMutex.Lock()
+	defer s.workersCountMutex.Unlock()
+
+	s.workersCount += 1
+}
+
+func (s *Server) decrWorkersCount() {
+	s.workersCountMutex.Lock()
+	defer s.workersCountMutex.Unlock()
+
+	s.workersCount -= 1
 }

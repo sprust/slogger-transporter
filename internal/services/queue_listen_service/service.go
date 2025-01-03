@@ -27,6 +27,7 @@ type Service struct {
 	connections        map[int]*amqp.Connection
 	closing            bool
 	retryingCount      int
+	retryingCountMutex sync.Mutex
 }
 
 type RmqParams struct {
@@ -262,11 +263,11 @@ func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery a
 		return
 	}
 
-	s.retryingCount += 1
+	s.incRetryingCount()
 
 	go func() {
 		defer func() {
-			s.retryingCount -= 1
+			s.decrRetryingCount()
 		}()
 
 		slog.Info(fmt.Sprintf("Worker %d: retry: tries %d", workerId, message.Tries))
@@ -301,4 +302,18 @@ func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery a
 
 		slog.Info(fmt.Sprintf("Worker %d: retry: published", workerId))
 	}()
+}
+
+func (s *Service) incRetryingCount() {
+	s.retryingCountMutex.Lock()
+	defer s.retryingCountMutex.Unlock()
+
+	s.retryingCount += 1
+}
+
+func (s *Service) decrRetryingCount() {
+	s.retryingCountMutex.Lock()
+	defer s.retryingCountMutex.Unlock()
+
+	s.retryingCount -= 1
 }
