@@ -21,5 +21,7 @@ func (p *Server) Ping(ctx context.Context, in *gen.PingPongPingRequest) (*gen.Pi
 }
 
 func (p *Server) Close() error {
+	slog.Warn("Closing ping pong server...")
+
 	return nil
 }

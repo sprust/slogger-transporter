@@ -7,6 +7,7 @@ import (
 )
 
 type ServeGrpcCommand struct {
+	server *grpc.Server
 }
 
 func (c *ServeGrpcCommand) Title() string {
@@ -21,9 +22,17 @@ func (c *ServeGrpcCommand) Handle(app *app.App, arguments []string) error {
 	grpcPort := os.Getenv("GRPC_PORT")
 	sloggerGrpcUrl := os.Getenv("SLOGGER_SERVER_GRPC_URL")
 
-	server := grpc.NewServer(app, grpcPort, sloggerGrpcUrl)
+	c.server = grpc.NewServer(app, grpcPort, sloggerGrpcUrl)
 
-	err := server.Run()
+	err := c.server.Run()
 
 	return err
+}
+
+func (c *ServeGrpcCommand) Close() error {
+	if c.server != nil {
+		return c.server.Close()
+	}
+
+	return nil
 }

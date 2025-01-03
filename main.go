@@ -13,6 +13,8 @@ import (
 	"syscall"
 )
 
+var customHandler *logging_service.CustomHandler
+
 func init() {
 	if err := godotenv.Load(); err != nil {
 		panic(err)
@@ -38,7 +40,9 @@ func init() {
 		}
 	}
 
-	customHandler, err := logging_service.NewCustomHandler(&slogLevel)
+	var err error
+
+	customHandler, err = logging_service.NewCustomHandler(&slogLevel)
 
 	if err == nil {
 		slog.SetDefault(slog.New(customHandler))
@@ -48,6 +52,16 @@ func init() {
 }
 
 func main() {
+	defer func() {
+		if customHandler != nil {
+			err := customHandler.Close()
+
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
+
 	args := os.Args
 	argsLen := len(args)
 
@@ -69,6 +83,8 @@ func main() {
 
 	newApp := app.NewApp(context.Background())
 
+	newApp.AddCloseListener(command)
+
 	signals := make(chan os.Signal)
 
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -89,7 +105,5 @@ func main() {
 		panic(err)
 	}
 
-	slog.Info("Exit")
-
-	os.Exit(0)
+	slog.Warn("Exit")
 }

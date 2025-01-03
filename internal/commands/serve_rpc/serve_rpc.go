@@ -7,6 +7,7 @@ import (
 )
 
 type ServeRpcCommand struct {
+	server *rpc.Server
 }
 
 func (c *ServeRpcCommand) Title() string {
@@ -20,9 +21,17 @@ func (c *ServeRpcCommand) Parameters() string {
 func (c *ServeRpcCommand) Handle(app *app.App, arguments []string) error {
 	rpcPort := os.Getenv("RPC_PORT")
 
-	server := rpc.NewServer(app, rpcPort)
+	c.server = rpc.NewServer(app, rpcPort)
 
-	err := server.Run()
+	err := c.server.Run()
 
 	return err
+}
+
+func (c *ServeRpcCommand) Close() error {
+	if c.server != nil {
+		return c.server.Close()
+	}
+
+	return nil
 }

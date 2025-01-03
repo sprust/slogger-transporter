@@ -71,6 +71,8 @@ func (h *CustomHandler) WithGroup(name string) slog.Handler {
 }
 
 func (h *CustomHandler) Close() error {
+	slog.Warn("Closing log file")
+
 	h.initFileMutex.Lock()
 	defer h.initFileMutex.Unlock()
 
@@ -86,7 +88,7 @@ func (h *CustomHandler) initConsoleHandler() {
 }
 
 func (h *CustomHandler) initFileHandler() error {
-	actualLogFileName := makeLogFileName()
+	actualLogFileName := h.makeLogFileName()
 
 	if actualLogFileName == h.currentLogFileName {
 		return nil
@@ -127,6 +129,6 @@ func (h *CustomHandler) makeHandlerOptions() *slog.HandlerOptions {
 
 }
 
-func makeLogFileName() string {
+func (h *CustomHandler) makeLogFileName() string {
 	return time.Now().Format("2006-01-02") + ".log"
 }

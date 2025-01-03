@@ -55,6 +55,8 @@ func (s *Server) Update(
 }
 
 func (s *Server) Close() error {
+	slog.Warn("Closing trace transporter server...")
+
 	s.closing = true
 
 	if s.transporterService == nil {

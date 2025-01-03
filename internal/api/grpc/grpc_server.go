@@ -31,8 +31,6 @@ func NewServer(app *app.App, rpcPort string, sloggerGrpcUrl string) *Server {
 		sloggerGrpcUrl: sloggerGrpcUrl,
 	}
 
-	app.AddCloseListener(server)
-
 	return server
 }
 
@@ -83,11 +81,11 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) Close() error {
+	slog.Warn("Closing grpc server...")
+
 	if s.grpcServer == nil {
 		return nil
 	}
-
-	slog.Info("Closing grpc server...")
 
 	for _, server := range s.servers {
 		err := server.Close()

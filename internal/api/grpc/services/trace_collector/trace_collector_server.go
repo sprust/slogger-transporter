@@ -82,5 +82,7 @@ func (c *Server) Update(ctx context.Context, in *gen.TraceUpdateRequest) (*gen.T
 }
 
 func (p *Server) Close() error {
+	slog.Warn("Closing trace collector server...")
+
 	return nil
 }

@@ -2,6 +2,7 @@ package grpc_manager
 
 import (
 	"context"
+	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
 	"slogger-transporter/internal/app"
 )
@@ -27,5 +28,7 @@ func (s *Server) Stop(ctx context.Context, in *gen.GrpcManagerStopRequest) (*gen
 }
 
 func (s *Server) Close() error {
+	slog.Warn("Closing grpc manager server...")
+
 	return nil
 }

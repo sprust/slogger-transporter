@@ -104,6 +104,8 @@ func (s *Service) Listen() error {
 }
 
 func (s *Service) Close() error {
+	slog.Warn("Closing queue listen service...")
+
 	s.closing = true
 
 	for id, connection := range s.connections {

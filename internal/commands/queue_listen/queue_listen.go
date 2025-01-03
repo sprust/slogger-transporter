@@ -8,6 +8,7 @@ import (
 )
 
 type QueueListenCommand struct {
+	service *queue_listen_service.Service
 }
 
 func (c *QueueListenCommand) Title() string {
@@ -27,7 +28,7 @@ func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
 
 	sloggerGrpcUrl := os.Getenv("SLOGGER_SERVER_GRPC_URL")
 
-	service, err := queue_listen_service.NewService(
+	c.service, err = queue_listen_service.NewService(
 		app,
 		&queue_listen_service.RmqParams{
 			RmqUser:         os.Getenv("RABBITMQ_USER"),
@@ -44,7 +45,13 @@ func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
 		return err
 	}
 
-	app.AddCloseListener(service)
+	return c.service.Listen()
+}
 
-	return service.Listen()
+func (c *QueueListenCommand) Close() error {
+	if c.service != nil {
+		return c.service.Close()
+	}
+
+	return nil
 }

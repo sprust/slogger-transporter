@@ -3,6 +3,7 @@ package grpc_manager
 import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
 )
 
@@ -30,5 +31,7 @@ func (c *Client) Get() gen.GrpcManagerClient {
 }
 
 func (c *Client) Close() error {
+	slog.Warn("Closing grpc manager client...")
+
 	return c.conn.Close()
 }

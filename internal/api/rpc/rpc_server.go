@@ -26,8 +26,6 @@ func NewServer(app *app.App, rpcPort string) *Server {
 		rpcPort: rpcPort,
 	}
 
-	app.AddCloseListener(server)
-
 	return server
 }
 
@@ -74,6 +72,8 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) Close() error {
+	slog.Warn("Closing rpc server...")
+
 	s.closing = true
 
 	return s.listener.Close()

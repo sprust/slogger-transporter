@@ -11,6 +11,7 @@ import (
 )
 
 type GrpcStopCommand struct {
+	client *grpc_manager.Client
 }
 
 func (c *GrpcStopCommand) Title() string {
@@ -24,13 +25,15 @@ func (c *GrpcStopCommand) Parameters() string {
 func (c *GrpcStopCommand) Handle(app *app.App, arguments []string) error {
 	grpcPort := os.Getenv("GRPC_PORT")
 
-	client, err := grpc_manager.NewClient(":" + grpcPort)
+	var err error
+
+	c.client, err = grpc_manager.NewClient(":" + grpcPort)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Get().Stop(app.GetContext(), &gen.GrpcManagerStopRequest{Message: "Stop please"})
+	_, err = c.client.Get().Stop(app.GetContext(), &gen.GrpcManagerStopRequest{Message: "Stop please"})
 
 	if err != nil {
 		if strings.Compare(err.Error(), "rpc error: code = Unavailable desc = error reading from server: EOF") == 0 {
@@ -45,4 +48,12 @@ func (c *GrpcStopCommand) Handle(app *app.App, arguments []string) error {
 	// this is never run
 
 	return errors.New("grpc server is not stopped")
+}
+
+func (c *GrpcStopCommand) Close() error {
+	if c.client != nil {
+		return c.client.Close()
+	}
+
+	return nil
 }

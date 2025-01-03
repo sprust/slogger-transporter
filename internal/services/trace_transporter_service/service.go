@@ -88,6 +88,8 @@ func (s *Service) Update(ctx context.Context, payload string) error {
 }
 
 func (s *Service) Close() error {
+	slog.Warn("Closing trace transporter service...")
+
 	return s.client.Close()
 }
 

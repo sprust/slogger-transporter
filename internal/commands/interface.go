@@ -6,4 +6,5 @@ type CommandInterface interface {
 	Title() string
 	Parameters() string
 	Handle(app *app.App, arguments []string) error
+	Close() error
 }
