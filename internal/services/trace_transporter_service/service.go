@@ -37,8 +37,8 @@ func (s *Service) Create(ctx context.Context, payload string) error {
 	messagePrefix := "grpc[TraceTransporter.Create]: "
 
 	err := s.send(
-		messagePrefix,
 		ctx,
+		messagePrefix,
 		payload,
 		func(ctx context.Context, payload string) (*trace_collector_gen.TraceCollectorResponse, error) {
 			request, err := s.parserCreate.Parse(payload)
@@ -64,8 +64,8 @@ func (s *Service) Update(ctx context.Context, payload string) error {
 	messagePrefix := "grpc[TraceTransporter.Update]: "
 
 	err := s.send(
-		messagePrefix,
 		ctx,
+		messagePrefix,
 		payload,
 		func(ctx context.Context, payload string) (*trace_collector_gen.TraceCollectorResponse, error) {
 			request, err := s.parserUpdate.Parse(payload)
@@ -92,8 +92,8 @@ func (s *Service) Close() error {
 }
 
 func (s *Service) send(
-	messagePrefix string,
 	ctx context.Context,
+	messagePrefix string,
 	payload string,
 	callback func(ctx context.Context, payload string) (*trace_collector_gen.TraceCollectorResponse, error),
 ) error {
