@@ -38,10 +38,12 @@ func init() {
 		}
 	}
 
-	err := logging_service.Init(slogLevel)
+	customHandler, err := logging_service.NewCustomHandler(&slogLevel)
 
-	if err != nil {
-		panic(err)
+	if err == nil {
+		slog.SetDefault(slog.New(customHandler))
+	} else {
+		slog.Error(err.Error())
 	}
 }
 
