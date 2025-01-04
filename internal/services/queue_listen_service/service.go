@@ -6,10 +6,8 @@ import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/grpc/metadata"
-	"log/slog"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/trace_transporter_service"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -22,6 +20,7 @@ const (
 
 type Service struct {
 	app                *app.App
+	events             *Events
 	rmqParams          *RmqParams
 	transporterService *trace_transporter_service.Service
 	connections        map[int]*amqp.Connection
@@ -56,6 +55,7 @@ func NewService(app *app.App, rmqParams *RmqParams, sloggerUrl string) (*Service
 	return &Service{
 		app:                app,
 		rmqParams:          rmqParams,
+		events:             NewEvents(app),
 		transporterService: transporterService,
 		connections:        make(map[int]*amqp.Connection),
 	}, nil
@@ -85,34 +85,34 @@ func (s *Service) Listen() error {
 	if s.retryingCount > 0 {
 		start := time.Now()
 
-		slog.Info("Waiting for jobs to finish " + strconv.Itoa(waitingWorkersEndingInSeconds) + " seconds...")
+		s.events.JobsFinishWaiting(waitingWorkersEndingInSeconds)
 
 		for s.retryingCount > 0 {
 			time.Sleep(1 * time.Second)
 
 			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
-				slog.Info("Force closing jobs...")
+				s.events.JobsForceClosing()
 
 				break
 			}
 		}
 
-		slog.Info("Jobs finished")
+		s.events.JobsFinished()
 	}
 
 	return nil
 }
 
 func (s *Service) Close() error {
-	slog.Warn("Closing queue listen service...")
+	s.events.Closing()
 
 	s.closing = true
 
-	for id, connection := range s.connections {
+	for workerId, connection := range s.connections {
 		err := connection.Close()
 
 		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to close connection %d: %s", id, err))
+			s.events.CloseConnectionFailed(workerId, err)
 		}
 	}
 
@@ -128,7 +128,7 @@ func (s *Service) startWorker(workerId int) {
 		}
 
 		if isReconnect {
-			slog.Error(fmt.Sprintf("Worker %d: reconnect", workerId))
+			s.events.WorkerReconnecting(workerId)
 
 			time.Sleep(1 * time.Second)
 		} else {
@@ -138,12 +138,12 @@ func (s *Service) startWorker(workerId int) {
 		connection, channel, err := s.connectRMQ()
 
 		if err != nil {
-			slog.Error(fmt.Sprintf("Worker %d: connection error: %s", workerId, err.Error()))
+			s.events.WorkerConnectionFailed(workerId, err)
 
 			continue
 		}
 
-		slog.Info(fmt.Sprintf("Worker %d: connected", workerId))
+		s.events.WorkerConnected(workerId)
 
 		s.connections[workerId] = connection
 
@@ -158,7 +158,7 @@ func (s *Service) startWorker(workerId int) {
 		)
 
 		if err != nil {
-			slog.Error(fmt.Sprintf("Worker %d: failed to register a consumer: %s", workerId, err))
+			s.events.WorkerRegisterConsumerFailed(workerId, err)
 
 			_ = connection.Close()
 
@@ -219,23 +219,25 @@ func (s *Service) declareQueues() error {
 }
 
 func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery amqp.Delivery) {
-	slog.Info(fmt.Sprintf("Worker %d: received a message: len %d", workerId, len(delivery.Body)))
+	s.events.WorkerMessageReceived(workerId, len(delivery.Body))
 
 	var message Message
 
 	err := json.Unmarshal(delivery.Body, &message)
 
 	if err != nil {
-		slog.Error(fmt.Sprintf("Worker %d: unmarshal error: %s", workerId, err.Error()))
+		s.events.WorkerMessageUnmarshalFailed(workerId, err)
 
 		return
 	}
 
+	s.events.WorkerMessageUnmarshal(workerId, &message)
+
+	ctx := context.WithoutCancel(s.app.GetContext())
+
 	md := metadata.New(map[string]string{
 		"authorization": "Bearer " + message.Token,
 	})
-
-	ctx := context.WithoutCancel(s.app.GetContext())
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
@@ -246,7 +248,7 @@ func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery a
 	} else if message.Action == "stop" {
 		errResult = s.transporterService.Update(ctx, message.Payload)
 	} else {
-		slog.Error(fmt.Sprintf("Worker %d: unknown action: %s", workerId, message.Action))
+		s.events.WorkerMessageUnknownAction(workerId, &message)
 
 		return
 	}
@@ -255,12 +257,12 @@ func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery a
 		return
 	}
 
-	slog.Error(fmt.Sprintf("Worker %d: error: %s", workerId, errResult.Error()))
+	s.events.WorkerMessageHandlingFailed(workerId, &message, errResult)
 
 	message.Tries += 1
 
 	if message.Tries > maxTries {
-		slog.Error(fmt.Sprintf("Worker %d: retry: max tries reached", workerId))
+		s.events.WorkerRetryingMessageMaxTriesReached(workerId, &message)
 
 		return
 	}
@@ -272,12 +274,14 @@ func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery a
 			s.decrRetryingCount()
 		}()
 
-		slog.Info(fmt.Sprintf("Worker %d: retry: tries %d", workerId, message.Tries))
+		s.events.WorkerMessageRetry(workerId, &message)
 
-		payload, err := json.Marshal(message)
+		var payload []byte
+
+		payload, err = json.Marshal(message)
 
 		if err != nil {
-			slog.Error(fmt.Sprintf("Worker %d: retry: marshal error: %s", workerId, err.Error()))
+			s.events.WorkerRetryingMessageUnmarshalFailed(workerId, err)
 
 			return
 		}
@@ -297,12 +301,12 @@ func (s *Service) handleDelivery(workerId int, channel *amqp.Channel, delivery a
 		)
 
 		if err != nil {
-			slog.Error(fmt.Sprintf("Retry: publish error: %s", err.Error()))
+			s.events.WorkerRetryingMessagePublishFailed(workerId, &message, err)
 
 			return
 		}
 
-		slog.Info(fmt.Sprintf("Worker %d: retry: published", workerId))
+		s.events.WorkerRetryingMessagePublished(workerId, &message)
 	}()
 }
 
