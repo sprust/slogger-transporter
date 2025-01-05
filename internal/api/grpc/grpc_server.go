@@ -111,7 +111,7 @@ func (s *Server) registerPingPongServer(grpcServer *grpc.Server) error {
 }
 
 func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
-	collectorServer, err := trace_collector.NewServer(s.app, s.sloggerGrpcUrl)
+	server, err := trace_collector.NewServer(s.app, s.sloggerGrpcUrl)
 
 	if err != nil {
 		slog.Error("Error creating collector: ", err.Error())
@@ -119,33 +119,29 @@ func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
 		return err
 	}
 
-	trace_collector_gen.RegisterTraceCollectorServer(grpcServer, collectorServer)
+	trace_collector_gen.RegisterTraceCollectorServer(grpcServer, server)
 
-	s.servers = append(s.servers, collectorServer)
+	s.servers = append(s.servers, server)
 
 	return nil
 }
 
 func (s *Server) registerTraceTransporterServer(grpcServer *grpc.Server) error {
-	transporterServer, err := trace_transporter.NewServer(s.app, s.sloggerGrpcUrl)
+	server := trace_transporter.NewServer(s.app)
 
-	if err != nil {
-		return err
-	}
+	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, server)
 
-	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, transporterServer)
-
-	s.servers = append(s.servers, transporterServer)
+	s.servers = append(s.servers, server)
 
 	return nil
 }
 
 func (s *Server) registerGrpcManagerServer(grpcServer *grpc.Server) error {
-	grpcManagerServer := grpc_manager.NewServer(s.app)
+	server := grpc_manager.NewServer(s.app)
 
-	grpc_manager_gen.RegisterGrpcManagerServer(grpcServer, grpcManagerServer)
+	grpc_manager_gen.RegisterGrpcManagerServer(grpcServer, server)
 
-	s.servers = append(s.servers, grpcManagerServer)
+	s.servers = append(s.servers, server)
 
 	return nil
 }

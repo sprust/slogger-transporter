@@ -109,7 +109,7 @@ func main() {
 			err = handlingCommand.Handle(&newApp, args[2:])
 
 			if err != nil {
-				slog.Error(err.Error())
+				panic(err)
 			}
 
 			waitGroup.Done()

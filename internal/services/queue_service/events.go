@@ -1,9 +1,10 @@
-package queue_listen_service
+package queue_service
 
 import (
 	"fmt"
 	"log/slog"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/queue_service/objects"
 	"strconv"
 )
 
@@ -59,34 +60,34 @@ func (e *Events) WorkerMessageUnmarshalFailed(workerId int, err error) {
 	slog.Error(fmt.Sprintf("Worker %d: unmarshal error: %s", workerId, err.Error()))
 }
 
-func (e *Events) WorkerMessageUnmarshal(workerId int, message *Message) {
-	slog.Info(fmt.Sprintf("Worker %d: message unmarshal: action[%s] tries[%d]", workerId, message.Action, message.Tries))
+func (e *Events) WorkerMessageUnmarshal(workerId int, message *objects.Message) {
+	slog.Info(fmt.Sprintf("Worker %d: message unmarshal: action[%s] tries[%d]", workerId, message.Type, message.Tries))
 }
 
-func (e *Events) WorkerMessageUnknownAction(workerId int, message *Message) {
-	slog.Error(fmt.Sprintf("Worker %d: unknown action: %s", workerId, message.Action))
+func (e *Events) WorkerMessageUnknownAction(workerId int, message *objects.Message) {
+	slog.Error(fmt.Sprintf("Worker %d: unknown action: %s", workerId, message.Type))
 }
 
-func (e *Events) WorkerMessageHandlingFailed(workerId int, message *Message, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: message[%s] handling error: %s", workerId, message.Action, err))
+func (e *Events) WorkerMessageHandlingFailed(workerId int, message *objects.Message, err error) {
+	slog.Error(fmt.Sprintf("Worker %d: message[%s] handling error: %s", workerId, message.Type, err))
 }
 
-func (e *Events) WorkerRetryingMessageMaxTriesReached(workerId int, message *Message) {
-	slog.Error(fmt.Sprintf("Worker %d: message[%s] retry: max tries reached", workerId, message.Action))
+func (e *Events) WorkerRetryingMessageMaxTriesReached(workerId int, message *objects.Message) {
+	slog.Error(fmt.Sprintf("Worker %d: message[%s] retry: max tries reached", workerId, message.Type))
 }
 
-func (e *Events) WorkerMessageRetry(workerId int, message *Message) {
-	slog.Info(fmt.Sprintf("Worker %d: message[%s] retry: tries %d", workerId, message.Action, message.Tries))
+func (e *Events) WorkerMessageRetry(workerId int, message *objects.Message) {
+	slog.Info(fmt.Sprintf("Worker %d: message[%s] retry: tries %d", workerId, message.Type, message.Tries))
 }
 
 func (e *Events) WorkerRetryingMessageUnmarshalFailed(workerId int, err error) {
 	slog.Error(fmt.Sprintf("Worker %d: retry: marshal error: %s", workerId, err))
 }
 
-func (e *Events) WorkerRetryingMessagePublishFailed(workerId int, message *Message, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: message[%s] retry: publish error: %s", workerId, message.Action, err))
+func (e *Events) WorkerRetryingMessagePublishFailed(workerId int, message *objects.Message, err error) {
+	slog.Error(fmt.Sprintf("Worker %d: message[%s] retry: publish error: %s", workerId, message.Type, err))
 }
 
-func (e *Events) WorkerRetryingMessagePublished(workerId int, message *Message) {
-	slog.Info(fmt.Sprintf("Worker %d: message[%s] retry: published", workerId, message.Action))
+func (e *Events) WorkerRetryingMessagePublished(workerId int, message *objects.Message) {
+	slog.Info(fmt.Sprintf("Worker %d: message[%s] retry: published", workerId, message.Type))
 }

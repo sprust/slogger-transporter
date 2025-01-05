@@ -2,11 +2,12 @@ package trace_transporter
 
 import (
 	"context"
+	"errors"
 	"google.golang.org/grpc/metadata"
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_transporter_gen"
 	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/trace_transporter_service"
+	"slogger-transporter/internal/services/queue_service"
 	"strconv"
 	"sync"
 	"time"
@@ -15,53 +16,38 @@ import (
 const waitingWorkersEndingInSeconds = 10
 
 type Server struct {
-	app                *app.App
-	transporterService *trace_transporter_service.Service
+	app *app.App
 	gen.UnimplementedTraceTransporterServer
+	publisher         *queue_service.Publisher
 	closing           bool
 	workersCount      int
 	workersCountMutex sync.Mutex
 }
 
-func NewServer(app *app.App, sloggerUrl string) (*Server, error) {
-	transporterService, err := trace_transporter_service.NewService(app, sloggerUrl)
+func NewServer(app *app.App) *Server {
+	return &Server{
+		app:       app,
+		publisher: queue_service.NewPublisher(app),
+	}
+}
+
+func (s *Server) Push(
+	ctx context.Context,
+	in *gen.TraceTransporterPushRequest,
+) (*gen.TraceTransporterResponse, error) {
+	err := s.publisher.Publish(queue_service.QueueTraceTransporterName, []byte(in.GetPayload()))
 
 	if err != nil {
-		return nil, err
+		return &gen.TraceTransporterResponse{Success: false}, err
 	}
 
-	return &Server{
-		app:                app,
-		transporterService: transporterService,
-	}, nil
-}
-
-func (s *Server) Create(
-	ctx context.Context,
-	in *gen.TraceTransporterCreateRequest,
-) (*gen.TraceTransporterResponse, error) {
-	return s.handle(ctx, func(ctx context.Context) {
-		_ = s.transporterService.Create(ctx, in.Payload)
-	})
-}
-
-func (s *Server) Update(
-	ctx context.Context,
-	in *gen.TraceTransporterUpdateRequest,
-) (*gen.TraceTransporterResponse, error) {
-	return s.handle(ctx, func(ctx context.Context) {
-		_ = s.transporterService.Update(ctx, in.Payload)
-	})
+	return &gen.TraceTransporterResponse{Success: true}, nil
 }
 
 func (s *Server) Close() error {
 	slog.Warn("Closing trace transporter server...")
 
 	s.closing = true
-
-	if s.transporterService == nil {
-		return nil
-	}
 
 	if s.workersCount > 0 {
 		start := time.Now()
@@ -79,7 +65,11 @@ func (s *Server) Close() error {
 		}
 	}
 
-	return s.transporterService.Close()
+	if s.workersCount > 0 {
+		return errors.New("workers are still running")
+	}
+
+	return nil
 }
 
 func (s *Server) handle(ctx context.Context, callback func(ctx context.Context)) (*gen.TraceTransporterResponse, error) {

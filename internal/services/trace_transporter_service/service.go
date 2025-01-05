@@ -3,8 +3,11 @@ package trace_transporter_service
 import (
 	"context"
 	"errors"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"log/slog"
-	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
+	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/app"
 	"strconv"
@@ -12,79 +15,149 @@ import (
 )
 
 type Service struct {
-	app          *app.App
-	client       *trace_collector.Client
-	parserCreate *ParserCreate
-	parserUpdate *ParserUpdate
+	app    *app.App
+	client *trace_collector.Client
 }
 
-func NewService(app *app.App, sloggerUrl string) (*Service, error) {
-	client, err := trace_collector.NewClient(sloggerUrl)
+func NewService(app *app.App) (*Service, error) {
+	client, err := trace_collector.NewClient(app.GetConfig().GetSloggerGrpcUrl())
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &Service{
-		app:          app,
-		client:       client,
-		parserCreate: NewParserCreate(),
-		parserUpdate: NewParserUpdate(),
+		app:    app,
+		client: client,
 	}, nil
 }
 
-func (s *Service) Create(ctx context.Context, payload string) error {
-	messagePrefix := "grpc[TraceTransporter.Create]: "
+func (s *Service) Create(token string, traces []*CreatingTrace) error {
+	var request gen.TraceCreateRequest
 
-	err := s.send(
-		ctx,
-		messagePrefix,
-		payload,
-		func(ctx context.Context, payload string) (*trace_collector_gen.TraceCollectorResponse, error) {
-			request, err := s.parserCreate.Parse(payload)
+	for _, trace := range traces {
+		loggedAt, parserErr := time.Parse("2006-01-02 15:04:05.000000", trace.LoggedAt)
 
-			if err != nil {
-				return nil, err
-			}
+		if parserErr != nil {
+			return parserErr
+		}
 
-			response, err := s.client.Get().Create(ctx, request)
+		var parentTraceId *wrappers.StringValue
 
-			if err != nil {
-				return nil, err
-			}
+		if trace.ParentTraceId != nil {
+			parentTraceId = &wrappers.StringValue{Value: *trace.ParentTraceId}
+		}
 
-			return response, nil
-		},
-	)
+		var duration *wrappers.DoubleValue
 
-	return err
+		if trace.Duration != nil {
+			duration = &wrappers.DoubleValue{Value: *trace.Duration}
+		}
+
+		var memory *wrappers.DoubleValue
+
+		if trace.Memory != nil {
+			memory = &wrappers.DoubleValue{Value: *trace.Memory}
+		}
+
+		var cpu *wrappers.DoubleValue
+
+		if trace.Cpu != nil {
+			cpu = &wrappers.DoubleValue{Value: *trace.Cpu}
+		}
+
+		request.Traces = append(request.Traces, &gen.TraceCreateObject{
+			TraceId:       trace.TraceId,
+			ParentTraceId: parentTraceId,
+			Type:          trace.Type,
+			Status:        trace.Status,
+			Tags:          trace.Tags,
+			Data:          trace.Data,
+			Duration:      duration,
+			Memory:        memory,
+			Cpu:           cpu,
+			LoggedAt:      timestamppb.New(loggedAt),
+		})
+	}
+
+	ctx := s.makeContext(token)
+
+	response, err := s.client.Get().Create(ctx, &request)
+
+	if err != nil {
+		return err
+	}
+
+	if response.GetStatusCode() != 200 {
+		return errors.New(
+			"transporter[create] invalid status code: " + strconv.Itoa(int(response.StatusCode)) + ", message: " + response.Message,
+		)
+	}
+
+	return nil
 }
 
-func (s *Service) Update(ctx context.Context, payload string) error {
-	messagePrefix := "grpc[TraceTransporter.Update]: "
+func (s *Service) Update(token string, traces []*UpdatingTrace) error {
+	var request gen.TraceUpdateRequest
 
-	err := s.send(
-		ctx,
-		messagePrefix,
-		payload,
-		func(ctx context.Context, payload string) (*trace_collector_gen.TraceCollectorResponse, error) {
-			request, err := s.parserUpdate.Parse(payload)
+	for _, trace := range traces {
+		var tags *gen.TagsObject
 
-			if err != nil {
-				return nil, err
-			}
+		if trace.Tags != nil {
+			tags = &gen.TagsObject{Items: *trace.Tags}
+		}
 
-			response, err := s.client.Get().Update(ctx, request)
+		var data *wrappers.StringValue
 
-			if err != nil {
-				return nil, err
-			}
+		if trace.Data != nil {
+			data = &wrappers.StringValue{Value: *trace.Data}
+		}
 
-			return response, nil
-		},
-	)
+		var duration *wrappers.DoubleValue
 
-	return err
+		if trace.Duration != nil {
+			duration = &wrappers.DoubleValue{Value: *trace.Duration}
+		}
+
+		var memory *wrappers.DoubleValue
+
+		if trace.Memory != nil {
+			memory = &wrappers.DoubleValue{Value: *trace.Memory}
+		}
+
+		var cpu *wrappers.DoubleValue
+
+		if trace.Cpu != nil {
+			cpu = &wrappers.DoubleValue{Value: *trace.Cpu}
+		}
+
+		request.Traces = append(request.Traces, &gen.TraceUpdateObject{
+			TraceId:   trace.TraceId,
+			Status:    trace.Status,
+			Profiling: nil, // TODO: parse profiling
+			Tags:      tags,
+			Data:      data,
+			Duration:  duration,
+			Memory:    memory,
+			Cpu:       cpu,
+		})
+	}
+
+	ctx := s.makeContext(token)
+
+	response, err := s.client.Get().Update(ctx, &request)
+
+	if err != nil {
+		return err
+	}
+
+	if response.GetStatusCode() != 200 {
+		return errors.New(
+			"transporter[update] invalid status code: " + strconv.Itoa(int(response.StatusCode)) + ", message: " + response.Message,
+		)
+	}
+
+	return nil
 }
 
 func (s *Service) Close() error {
@@ -93,31 +166,12 @@ func (s *Service) Close() error {
 	return s.client.Close()
 }
 
-func (s *Service) send(
-	ctx context.Context,
-	messagePrefix string,
-	payload string,
-	callback func(ctx context.Context, payload string) (*trace_collector_gen.TraceCollectorResponse, error),
-) error {
-	start := time.Now()
+func (s *Service) makeContext(token string) context.Context {
+	ctx := context.WithoutCancel(s.app.GetContext())
 
-	response, err := callback(ctx, payload)
+	md := metadata.New(map[string]string{
+		"authorization": "Bearer " + token,
+	})
 
-	messagePrefix = messagePrefix + time.Since(start).String()
-
-	if err != nil {
-		slog.Error(messagePrefix + ": " + err.Error())
-
-		return err
-	}
-
-	if response.GetStatusCode() != 200 {
-		return errors.New(
-			"status code: " + strconv.Itoa(int(response.StatusCode)) + ", message: " + response.Message,
-		)
-	}
-
-	slog.Info(messagePrefix + ": " + response.Message)
-
-	return nil
+	return metadata.NewOutgoingContext(ctx, md)
 }

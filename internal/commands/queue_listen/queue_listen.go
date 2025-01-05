@@ -1,14 +1,17 @@
 package queue_listen
 
 import (
-	"os"
 	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/queue_listen_service"
-	"strconv"
+	"slogger-transporter/internal/services/queue_service"
+	"sync"
 )
 
+var queueNames = []string{
+	queue_service.QueueTraceTransporterName,
+}
+
 type QueueListenCommand struct {
-	service *queue_listen_service.Service
+	listeners []*queue_service.Listener
 }
 
 func (c *QueueListenCommand) Title() string {
@@ -20,37 +23,54 @@ func (c *QueueListenCommand) Parameters() string {
 }
 
 func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
-	queueWorkersNum, err := strconv.Atoi(os.Getenv("RABBITMQ_QUEUE_WORKERS_NUM"))
+	queueFactory, err := queue_service.NewFactory(app)
 
 	if err != nil {
 		return err
 	}
 
-	sloggerGrpcUrl := os.Getenv("SLOGGER_SERVER_GRPC_URL")
+	for _, queueName := range queueNames {
+		queue, err := queueFactory.GetQueue(queueName)
 
-	c.service, err = queue_listen_service.NewService(
-		app,
-		&queue_listen_service.RmqParams{
-			RmqUser:         os.Getenv("RABBITMQ_USER"),
-			RmqPass:         os.Getenv("RABBITMQ_PASSWORD"),
-			RmqHost:         os.Getenv("RABBITMQ_HOST"),
-			RmqPort:         os.Getenv("RABBITMQ_PORT"),
-			QueueName:       os.Getenv("RABBITMQ_QUEUE_NAME"),
-			QueueWorkersNum: queueWorkersNum,
-		},
-		sloggerGrpcUrl,
-	)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		return err
+		listener, err := queue_service.NewListener(app, queue)
+
+		if err != nil {
+			return err
+		}
+
+		c.listeners = append(c.listeners, listener)
 	}
 
-	return c.service.Listen()
+	waitGroup := sync.WaitGroup{}
+
+	for _, listener := range c.listeners {
+		waitGroup.Add(1)
+
+		go func() {
+			err := listener.Listen()
+
+			if err != nil {
+				panic(err)
+			}
+		}()
+	}
+
+	waitGroup.Wait()
+
+	return nil
 }
 
 func (c *QueueListenCommand) Close() error {
-	if c.service != nil {
-		return c.service.Close()
+	for _, listener := range c.listeners {
+		err := listener.Close()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

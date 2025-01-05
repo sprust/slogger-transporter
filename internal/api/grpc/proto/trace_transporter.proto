@@ -5,15 +5,10 @@ package slogger_transporter;
 option go_package = "services/trace_transporter_gen";
 
 service TraceTransporter {
-  rpc Create(TraceTransporterCreateRequest) returns (TraceTransporterResponse) {}
-  rpc Update(TraceTransporterUpdateRequest) returns (TraceTransporterResponse) {}
+  rpc Push(TraceTransporterPushRequest) returns (TraceTransporterResponse) {}
 }
 
-message TraceTransporterCreateRequest {
-  string payload = 1;
-}
-
-message TraceTransporterUpdateRequest {
+message TraceTransporterPushRequest {
   string payload = 1;
 }
 

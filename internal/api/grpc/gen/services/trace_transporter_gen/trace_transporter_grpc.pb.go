@@ -19,16 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TraceTransporter_Create_FullMethodName = "/slogger_transporter.TraceTransporter/Create"
-	TraceTransporter_Update_FullMethodName = "/slogger_transporter.TraceTransporter/Update"
+	TraceTransporter_Push_FullMethodName = "/slogger_transporter.TraceTransporter/Push"
 )
 
 // TraceTransporterClient is the client API for TraceTransporter service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TraceTransporterClient interface {
-	Create(ctx context.Context, in *TraceTransporterCreateRequest, opts ...grpc.CallOption) (*TraceTransporterResponse, error)
-	Update(ctx context.Context, in *TraceTransporterUpdateRequest, opts ...grpc.CallOption) (*TraceTransporterResponse, error)
+	Push(ctx context.Context, in *TraceTransporterPushRequest, opts ...grpc.CallOption) (*TraceTransporterResponse, error)
 }
 
 type traceTransporterClient struct {
@@ -39,20 +37,10 @@ func NewTraceTransporterClient(cc grpc.ClientConnInterface) TraceTransporterClie
 	return &traceTransporterClient{cc}
 }
 
-func (c *traceTransporterClient) Create(ctx context.Context, in *TraceTransporterCreateRequest, opts ...grpc.CallOption) (*TraceTransporterResponse, error) {
+func (c *traceTransporterClient) Push(ctx context.Context, in *TraceTransporterPushRequest, opts ...grpc.CallOption) (*TraceTransporterResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TraceTransporterResponse)
-	err := c.cc.Invoke(ctx, TraceTransporter_Create_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *traceTransporterClient) Update(ctx context.Context, in *TraceTransporterUpdateRequest, opts ...grpc.CallOption) (*TraceTransporterResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TraceTransporterResponse)
-	err := c.cc.Invoke(ctx, TraceTransporter_Update_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, TraceTransporter_Push_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +51,7 @@ func (c *traceTransporterClient) Update(ctx context.Context, in *TraceTransporte
 // All implementations must embed UnimplementedTraceTransporterServer
 // for forward compatibility.
 type TraceTransporterServer interface {
-	Create(context.Context, *TraceTransporterCreateRequest) (*TraceTransporterResponse, error)
-	Update(context.Context, *TraceTransporterUpdateRequest) (*TraceTransporterResponse, error)
+	Push(context.Context, *TraceTransporterPushRequest) (*TraceTransporterResponse, error)
 	mustEmbedUnimplementedTraceTransporterServer()
 }
 
@@ -75,11 +62,8 @@ type TraceTransporterServer interface {
 // pointer dereference when methods are called.
 type UnimplementedTraceTransporterServer struct{}
 
-func (UnimplementedTraceTransporterServer) Create(context.Context, *TraceTransporterCreateRequest) (*TraceTransporterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
-}
-func (UnimplementedTraceTransporterServer) Update(context.Context, *TraceTransporterUpdateRequest) (*TraceTransporterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+func (UnimplementedTraceTransporterServer) Push(context.Context, *TraceTransporterPushRequest) (*TraceTransporterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
 }
 func (UnimplementedTraceTransporterServer) mustEmbedUnimplementedTraceTransporterServer() {}
 func (UnimplementedTraceTransporterServer) testEmbeddedByValue()                          {}
@@ -102,38 +86,20 @@ func RegisterTraceTransporterServer(s grpc.ServiceRegistrar, srv TraceTransporte
 	s.RegisterService(&TraceTransporter_ServiceDesc, srv)
 }
 
-func _TraceTransporter_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TraceTransporterCreateRequest)
+func _TraceTransporter_Push_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TraceTransporterPushRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TraceTransporterServer).Create(ctx, in)
+		return srv.(TraceTransporterServer).Push(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TraceTransporter_Create_FullMethodName,
+		FullMethod: TraceTransporter_Push_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TraceTransporterServer).Create(ctx, req.(*TraceTransporterCreateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TraceTransporter_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TraceTransporterUpdateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TraceTransporterServer).Update(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TraceTransporter_Update_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TraceTransporterServer).Update(ctx, req.(*TraceTransporterUpdateRequest))
+		return srv.(TraceTransporterServer).Push(ctx, req.(*TraceTransporterPushRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -146,12 +112,8 @@ var TraceTransporter_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*TraceTransporterServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Create",
-			Handler:    _TraceTransporter_Create_Handler,
-		},
-		{
-			MethodName: "Update",
-			Handler:    _TraceTransporter_Update_Handler,
+			MethodName: "Push",
+			Handler:    _TraceTransporter_Push_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
