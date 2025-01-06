@@ -8,86 +8,117 @@ import (
 	"strconv"
 )
 
+// TODO: refactor
+
 type Events struct {
-	app *app.App
+	app    *app.App
+	prefix string
 }
 
-func NewEvents(app *app.App) *Events {
-	return &Events{app: app}
+func NewEvents(app *app.App, queueName string) *Events {
+	return &Events{
+		app:    app,
+		prefix: fmt.Sprintf("queue[%s]", queueName),
+	}
 }
 
 func (e *Events) JobsFinishWaiting(timeout int) {
-	slog.Info("Waiting for jobs to finish " + strconv.Itoa(timeout) + " seconds...")
+	slog.Info(e.makeView("waiting for jobs to finish " + strconv.Itoa(timeout) + " seconds..."))
 }
 
 func (e *Events) JobsForceClosing() {
-	slog.Info("Force closing jobs...")
+	slog.Info(e.makeView("force closing jobs..."))
 }
 
 func (e *Events) JobsFinished() {
-	slog.Info("Jobs finished")
+	slog.Info(e.makeView("jobs finished"))
 }
 
 func (e *Events) Closing() {
-	slog.Warn("Closing queue listen service...")
+	slog.Warn(e.makeView("closing queue listen service..."))
+}
+
+func (e *Events) Closed() {
+	slog.Warn(e.makeView("queue listen service closed"))
 }
 
 func (e *Events) CloseConnectionFailed(workerId int, err error) {
-	slog.Error(fmt.Sprintf("Failed to close connection %d: %s", workerId, err))
+	slog.Error(e.makeWorkerLogTextError(workerId, "failed to close connection", err))
 }
 
 func (e *Events) WorkerReconnecting(workerId int) {
-	slog.Error(fmt.Sprintf("Worker %d: reconnect", workerId))
+	slog.Error(e.makeLogText(workerId, "reconnect"))
 }
 
 func (e *Events) WorkerConnectionFailed(workerId int, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: connection error: %s", workerId, err))
+	slog.Error(e.makeWorkerLogTextError(workerId, "connection error", err))
 }
 
 func (e *Events) WorkerConnected(workerId int) {
-	slog.Info(fmt.Sprintf("Worker %d: connected", workerId))
+	slog.Info(e.makeLogText(workerId, "connected"))
 }
 
 func (e *Events) WorkerRegisterConsumerFailed(workerId int, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: failed to register a consumer: %s", workerId, err))
+	slog.Error(e.makeLogText(workerId, fmt.Sprintf("failed to register a consumer: %s", err)))
 }
 
-func (e *Events) WorkerMessageReceived(workerId int, bodyLen int) {
-	slog.Info(fmt.Sprintf("Worker %d: received a message: len %d", workerId, bodyLen))
+func (e *Events) WorkerDeliveryReceived(workerId int, bodyLen int) {
+	slog.Info(e.makeLogText(workerId, fmt.Sprintf("received a delivery: len %d", bodyLen)))
 }
 
 func (e *Events) WorkerMessageUnmarshalFailed(workerId int, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: unmarshal error: %s", workerId, err.Error()))
-}
-
-func (e *Events) WorkerMessageUnmarshal(workerId int, message *objects.Message) {
-	slog.Info(fmt.Sprintf("Worker %d: message unmarshal: action[%s] tries[%d]", workerId, message.Type, message.Tries))
-}
-
-func (e *Events) WorkerMessageUnknownAction(workerId int, message *objects.Message) {
-	slog.Error(fmt.Sprintf("Worker %d: unknown action: %s", workerId, message.Type))
+	slog.Error(e.makeWorkerLogTextError(workerId, "unmarshal error", err))
 }
 
 func (e *Events) WorkerMessageHandlingFailed(workerId int, message *objects.Message, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: message[%s] handling error: %s", workerId, message.Type, err))
+	slog.Error(e.makeWorkerLogTextError(workerId, e.makeMessageView(message)+": handling error", err))
 }
 
 func (e *Events) WorkerRetryingMessageMaxTriesReached(workerId int, message *objects.Message) {
-	slog.Error(fmt.Sprintf("Worker %d: message[%s] retry: max tries reached", workerId, message.Type))
+	slog.Error(e.makeLogText(workerId, e.makeMessageView(message)+": max tries reached"))
 }
 
 func (e *Events) WorkerMessageRetry(workerId int, message *objects.Message) {
-	slog.Info(fmt.Sprintf("Worker %d: message[%s] retry: tries %d", workerId, message.Type, message.Tries))
+	slog.Info(e.makeLogText(workerId, e.makeMessageView(message)+fmt.Sprintf(": retry %d", message.Tries)))
 }
 
 func (e *Events) WorkerRetryingMessageUnmarshalFailed(workerId int, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: retry: marshal error: %s", workerId, err))
+	slog.Error(e.makeWorkerLogTextError(workerId, "unmarshal error at retrying", err))
 }
 
 func (e *Events) WorkerRetryingMessagePublishFailed(workerId int, message *objects.Message, err error) {
-	slog.Error(fmt.Sprintf("Worker %d: message[%s] retry: publish error: %s", workerId, message.Type, err))
+	slog.Error(e.makeWorkerLogTextError(workerId, e.makeMessageView(message)+": publish error at retrying", err))
 }
 
 func (e *Events) WorkerRetryingMessagePublished(workerId int, message *objects.Message) {
-	slog.Info(fmt.Sprintf("Worker %d: message[%s] retry: published", workerId, message.Type))
+	slog.Info(e.makeLogText(workerId, e.makeMessageView(message)+fmt.Sprintf(": retry published %d", message.Tries)))
+}
+
+func (e *Events) makeView(text string) string {
+	return e.prefix + ": " + text
+}
+
+func (e *Events) makeWorkerView(workerId int) string {
+	return e.prefix + fmt.Sprintf(": worker[%d]", workerId)
+}
+
+func (e *Events) makeLogText(workerId int, text string) string {
+	return fmt.Sprintf(e.makeWorkerView(workerId) + ": " + text)
+}
+func (e *Events) makeWorkerLogTextError(workerId int, text string, err error) string {
+	return fmt.Sprintf(e.makeWorkerView(workerId) + ": " + text + ": " + err.Error())
+}
+
+func (e *Events) makeMessageView(message *objects.Message) string {
+	return fmt.Sprintf("message[%s]", message.Id)
+}
+
+func (e *Events) makeWorkerMessageTextError(workerId int, message *objects.Message, text string, err error) string {
+	return fmt.Sprintf(e.makeWorkerView(workerId) + ": " + text + ": " + err.Error())
+}
+
+func (e *Events) makeWorkerMessageText(workerId int, message *objects.Message, text string, a ...any) string {
+	return fmt.Sprintf(
+		e.makeWorkerView(workerId) + ": " + e.makeMessageView(message) + ": " + fmt.Sprintf(text, a...),
+	)
 }

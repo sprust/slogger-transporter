@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -37,6 +38,28 @@ func (c *Config) GetRmqConfig() *RmqParams {
 	}
 
 	return c.rmq
+}
+
+func (c *Config) GetRpcPort() string {
+	return os.Getenv("RPC_PORT")
+}
+
+func (c *Config) GetGrpcPort() string {
+	return os.Getenv("GRPC_PORT")
+}
+
+func (c *Config) GetTraceTransporterQueueName() string {
+	return os.Getenv("TRACE_TRANSPORTER_QUEUE_NAME")
+}
+
+func (c *Config) GetTraceTransporterQueueWorkersNum() (int, error) {
+	workersNum, err := strconv.Atoi(os.Getenv("TRACE_TRANSPORTER_QUEUE_WORKERS_NUM"))
+
+	if err != nil {
+		return 0, err
+	}
+
+	return workersNum, nil
 }
 
 func (c *Config) GetSloggerGrpcUrl() string {

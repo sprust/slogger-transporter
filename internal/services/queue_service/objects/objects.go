@@ -1,9 +1,9 @@
 package objects
 
 type Message struct {
-	Type    string `json:"type"`
+	Id      string `json:"id"`
 	Payload string `json:"payload"`
-	Tries   int
+	Tries   int    `json:"tries"`
 }
 
 type QueueSettings struct {

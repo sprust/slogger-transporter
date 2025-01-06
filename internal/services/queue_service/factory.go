@@ -12,12 +12,8 @@ type Factory struct {
 	items map[string]objects.QueueInterface
 }
 
-const (
-	QueueTraceTransporterName = "trace_transporter"
-)
-
 func NewFactory(app *app.App) (*Factory, error) {
-	transporter, err := queue_trace_transporter.NewQueueTraceTransporter(app)
+	transporter, err := createTransporter(app)
 
 	if err != nil {
 		return nil, err
@@ -25,7 +21,7 @@ func NewFactory(app *app.App) (*Factory, error) {
 
 	return &Factory{
 		items: map[string]objects.QueueInterface{
-			QueueTraceTransporterName: transporter,
+			app.GetConfig().GetTraceTransporterQueueName(): transporter,
 		},
 	}, err
 }
@@ -36,4 +32,24 @@ func (f *Factory) GetQueue(name string) (objects.QueueInterface, error) {
 	}
 
 	return nil, errors.New(fmt.Sprintf("queue %s not found", name))
+}
+
+func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTransporter, error) {
+	queueWorkersNum, err := app.GetConfig().GetTraceTransporterQueueWorkersNum()
+
+	if err != nil {
+		return nil, err
+	}
+
+	transporter, err := queue_trace_transporter.NewQueueTraceTransporter(
+		app,
+		app.GetConfig().GetTraceTransporterQueueName(),
+		queueWorkersNum,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return transporter, nil
 }

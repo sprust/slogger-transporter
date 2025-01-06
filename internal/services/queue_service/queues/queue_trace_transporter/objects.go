@@ -1,35 +1,35 @@
 package queue_trace_transporter
 
 type Payload struct {
-	Token string `json:"t"`
-	Data  []Data `json:"d"`
+	Token   string `json:"tok"`
+	Actions []Data `json:"acs"`
 }
 
 type Data struct {
-	Action string `json:"a"`
-	Trace  string `json:"t"`
+	Type string `json:"tp"`
+	Data string `json:"dt"`
 }
 
 type CreatingTrace struct {
-	TraceId       string   `json:"traceId"`
-	ParentTraceId *string  `json:"parentTraceId"`
-	Type          string   `json:"type"`
-	Status        string   `json:"status"`
-	Tags          []string `json:"tags"`
-	Data          string   `json:"data"`
-	Duration      *float64 `json:"duration"`
-	Memory        *float64 `json:"memory"`
+	TraceId       string   `json:"tid"`
+	ParentTraceId *string  `json:"pid"`
+	Type          string   `json:"tp"`
+	Status        string   `json:"st"`
+	Tags          []string `json:"tgs"`
+	Data          string   `json:"dt"`
+	Duration      *float64 `json:"dur"`
+	Memory        *float64 `json:"mem"`
 	Cpu           *float64 `json:"cpu"`
-	LoggedAt      string   `json:"loggedAt"`
+	LoggedAt      string   `json:"lat"`
 }
 
 type UpdatingTrace struct {
-	TraceId   string    `json:"traceId"`
-	Status    string    `json:"status"`
-	Profiling *string   `json:"profiling"`
-	Tags      *[]string `json:"tags"`
-	Data      *string   `json:"data"`
-	Duration  *float64  `json:"duration"`
-	Memory    *float64  `json:"memory"`
+	TraceId   string    `json:"tid"`
+	Status    string    `json:"st"`
+	Profiling *string   `json:"pr"`
+	Tags      *[]string `json:"tgs"`
+	Data      *string   `json:"dt"`
+	Duration  *float64  `json:"dur"`
+	Memory    *float64  `json:"mem"`
 	Cpu       *float64  `json:"cpu"`
 }

@@ -3,7 +3,6 @@ package stop_grpc
 import (
 	"errors"
 	"log/slog"
-	"os"
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
 	"slogger-transporter/internal/api/grpc/services/grpc_manager"
 	"slogger-transporter/internal/app"
@@ -23,7 +22,7 @@ func (c *GrpcStopCommand) Parameters() string {
 }
 
 func (c *GrpcStopCommand) Handle(app *app.App, arguments []string) error {
-	grpcPort := os.Getenv("GRPC_PORT")
+	grpcPort := app.GetConfig().GetGrpcPort()
 
 	var err error
 

@@ -3,23 +3,32 @@ package queue_trace_transporter
 import (
 	"encoding/json"
 	"errors"
-	"os"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"slogger-transporter/internal/services/trace_transporter_service"
-	"strconv"
+	"strings"
 	"sync"
 )
 
 type QueueTraceTransporter struct {
-	app         *app.App
-	transporter *trace_transporter_service.Service
-	settings    *objects.QueueSettings
-	mutex       sync.Mutex
+	app             *app.App
+	queueName       string
+	queueWorkersNum int
+	transporter     *trace_transporter_service.Service
+	settings        *objects.QueueSettings
+	mutex           sync.Mutex
 }
 
-func NewQueueTraceTransporter(app *app.App) (*QueueTraceTransporter, error) {
+func NewQueueTraceTransporter(app *app.App, queueName string, queueWorkersNum int) (*QueueTraceTransporter, error) {
+	if queueName == "" {
+		return nil, errors.New("invalid queue name")
+	}
+
+	if queueWorkersNum < 1 {
+		return nil, errors.New("invalid queue workers num")
+	}
+
 	transporter, err := trace_transporter_service.NewService(app)
 
 	if err != nil {
@@ -27,8 +36,10 @@ func NewQueueTraceTransporter(app *app.App) (*QueueTraceTransporter, error) {
 	}
 
 	return &QueueTraceTransporter{
-		app:         app,
-		transporter: transporter,
+		app:             app,
+		queueName:       queueName,
+		queueWorkersNum: queueWorkersNum,
+		transporter:     transporter,
 	}, nil
 }
 
@@ -44,21 +55,9 @@ func (q *QueueTraceTransporter) GetSettings() (*objects.QueueSettings, error) {
 		return q.settings, nil
 	}
 
-	queueWorkersNum, err := strconv.Atoi(os.Getenv("TRACE_TRANSPORTER_QUEUE_WORKERS_NUM"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	queueName := os.Getenv("TRACE_TRANSPORTER_QUEUE_NAME")
-
-	if queueName == "" {
-		return nil, errors.New("TRACE_TRANSPORTER_QUEUE_NAME is not set")
-	}
-
 	q.settings = &objects.QueueSettings{
-		QueueName:       queueName,
-		QueueWorkersNum: queueWorkersNum,
+		QueueName:       q.queueName,
+		QueueWorkersNum: q.queueWorkersNum,
 	}
 
 	return q.settings, nil
@@ -93,11 +92,11 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 	var creatingTraces []*trace_transporter_service.CreatingTrace
 	var updatingTraces []*trace_transporter_service.UpdatingTrace
 
-	for _, message := range payload.Data {
-		if message.Action == "c" { // push
+	for _, action := range payload.Actions {
+		if action.Type == "cr" { // create
 			var trace CreatingTrace
 
-			err = json.Unmarshal([]byte(message.Trace), &trace)
+			err = json.Unmarshal([]byte(action.Data), &trace)
 
 			if err != nil {
 				return err
@@ -115,10 +114,10 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 				Cpu:           trace.Cpu,
 				LoggedAt:      trace.LoggedAt,
 			})
-		} else if message.Action == "u" { // stop
+		} else if action.Type == "upd" { // update
 			var trace UpdatingTrace
 
-			err = json.Unmarshal([]byte(message.Trace), &trace)
+			err = json.Unmarshal([]byte(action.Data), &trace)
 
 			if err != nil {
 				return err
@@ -134,15 +133,31 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 				Memory:    trace.Memory,
 				Cpu:       trace.Cpu,
 			})
+		} else {
+			return errors.New("unknown action type: " + action.Type)
 		}
 	}
 
+	var errorsTexts []string
+
 	if len(creatingTraces) > 0 {
-		q.transporter.Create(payload.Token, creatingTraces) // TODO
+		err = q.transporter.Create(payload.Token, creatingTraces)
+
+		if err != nil {
+			errorsTexts = append(errorsTexts, "creating: "+err.Error())
+		}
 	}
 
 	if len(updatingTraces) > 0 {
-		q.transporter.Update(payload.Token, updatingTraces) // TODO
+		err = q.transporter.Update(payload.Token, updatingTraces)
+
+		if err != nil {
+			errorsTexts = append(errorsTexts, "updating: "+err.Error())
+		}
+	}
+
+	if len(errorsTexts) > 0 {
+		return errors.New(strings.Join(errorsTexts, ", "))
 	}
 
 	return nil

@@ -15,7 +15,8 @@ type App struct {
 
 func NewApp(ctx context.Context) App {
 	app := App{
-		ctx: ctx,
+		ctx:    ctx,
+		config: &config.Config{},
 	}
 
 	return app

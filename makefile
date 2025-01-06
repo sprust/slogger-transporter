@@ -21,6 +21,9 @@ run:
 run-serve-grpc:
 	go run main.go serve:grpc
 
+run-queue-listen:
+	go run main.go queue:listen
+
 build:
 	go build -o ./bin/ main.go
 
@@ -37,3 +40,6 @@ grpc-generate:
 
 bin-serve-grpc:
 	./bin/main serve:grpc
+
+bin-queue-listen:
+	./bin/main queue:listen

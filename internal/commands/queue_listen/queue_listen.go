@@ -6,10 +6,6 @@ import (
 	"sync"
 )
 
-var queueNames = []string{
-	queue_service.QueueTraceTransporterName,
-}
-
 type QueueListenCommand struct {
 	listeners []*queue_service.Listener
 }
@@ -29,7 +25,7 @@ func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
 		return err
 	}
 
-	for _, queueName := range queueNames {
+	for _, queueName := range c.getQueueNames(app) {
 		queue, err := queueFactory.GetQueue(queueName)
 
 		if err != nil {
@@ -51,6 +47,8 @@ func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
 		waitGroup.Add(1)
 
 		go func() {
+			defer waitGroup.Done()
+
 			err := listener.Listen()
 
 			if err != nil {
@@ -74,4 +72,11 @@ func (c *QueueListenCommand) Close() error {
 	}
 
 	return nil
+}
+func (c *QueueListenCommand) getQueueNames(app *app.App) []string {
+	config := app.GetConfig()
+
+	return []string{
+		config.GetTraceTransporterQueueName(),
+	}
 }

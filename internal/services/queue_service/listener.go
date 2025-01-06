@@ -23,9 +23,10 @@ type Listener struct {
 	events             *Events
 	rmqParams          *config.RmqParams
 	connections        map[int]*connections.Connection
+	publisher          *Publisher
 	closing            bool
-	retryingCount      int
-	retryingCountMutex sync.Mutex
+	handlingCount      int
+	handlingCountMutex sync.Mutex
 }
 
 func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) {
@@ -40,8 +41,9 @@ func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) 
 		queue:         queue,
 		queueSettings: settings,
 		rmqParams:     app.GetConfig().GetRmqConfig(),
-		events:        NewEvents(app),
+		events:        NewEvents(app, settings.QueueName),
 		connections:   make(map[int]*connections.Connection),
+		publisher:     NewPublisher(app),
 	}, nil
 }
 
@@ -66,24 +68,6 @@ func (l *Listener) Listen() error {
 
 	waitGroup.Wait()
 
-	if l.retryingCount > 0 {
-		start := time.Now()
-
-		l.events.JobsFinishWaiting(waitingWorkersEndingInSeconds)
-
-		for l.retryingCount > 0 {
-			time.Sleep(1 * time.Second)
-
-			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
-				l.events.JobsForceClosing()
-
-				break
-			}
-		}
-
-		l.events.JobsFinished()
-	}
-
 	return nil
 }
 
@@ -99,6 +83,26 @@ func (l *Listener) Close() error {
 			l.events.CloseConnectionFailed(workerId, err)
 		}
 	}
+
+	if l.handlingCount > 0 {
+		start := time.Now()
+
+		l.events.JobsFinishWaiting(waitingWorkersEndingInSeconds)
+
+		for l.handlingCount > 0 {
+			time.Sleep(1 * time.Second)
+
+			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
+				l.events.JobsForceClosing()
+
+				break
+			}
+		}
+
+		l.events.JobsFinished()
+	}
+
+	l.events.Closed()
 
 	return nil
 }
@@ -136,7 +140,7 @@ func (l *Listener) startWorker(workerId int) {
 		}
 
 		for delivery := range deliveries {
-			l.handleDelivery(workerId, connection, delivery)
+			l.handleDelivery(workerId, delivery)
 		}
 
 		_ = connection.Close()
@@ -153,8 +157,10 @@ func (l *Listener) declareQueue() error {
 	return err
 }
 
-func (l *Listener) handleDelivery(workerId int, connection *connections.Connection, delivery amqp.Delivery) {
-	l.events.WorkerMessageReceived(workerId, len(delivery.Body))
+func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
+	l.incHandlingCount()
+
+	l.events.WorkerDeliveryReceived(workerId, len(delivery.Body))
 
 	var message objects.Message
 
@@ -162,15 +168,14 @@ func (l *Listener) handleDelivery(workerId int, connection *connections.Connecti
 
 	if err != nil {
 		l.events.WorkerMessageUnmarshalFailed(workerId, err)
-
+		l.decrHandlingCount()
 		return
 	}
-
-	l.events.WorkerMessageUnmarshal(workerId, &message)
 
 	err = l.queue.Handle(&objects.Job{WorkerId: workerId, Payload: []byte(message.Payload)})
 
 	if err == nil {
+		l.decrHandlingCount()
 		return
 	}
 
@@ -180,16 +185,12 @@ func (l *Listener) handleDelivery(workerId int, connection *connections.Connecti
 
 	if message.Tries > maxTries {
 		l.events.WorkerRetryingMessageMaxTriesReached(workerId, &message)
-
+		l.decrHandlingCount()
 		return
 	}
 
-	l.incRetryingCount()
-
 	go func() {
-		defer func() {
-			l.decrRetryingCount()
-		}()
+		defer l.decrHandlingCount()
 
 		l.events.WorkerMessageRetry(workerId, &message)
 
@@ -205,31 +206,29 @@ func (l *Listener) handleDelivery(workerId int, connection *connections.Connecti
 
 		time.Sleep(1 * time.Second)
 
-		err = connection.Publish(
+		err = l.publisher.Publish(
 			l.queueSettings.QueueName,
 			payload,
 		)
 
 		if err != nil {
 			l.events.WorkerRetryingMessagePublishFailed(workerId, &message, err)
-
-			return
+		} else {
+			l.events.WorkerRetryingMessagePublished(workerId, &message)
 		}
-
-		l.events.WorkerRetryingMessagePublished(workerId, &message)
 	}()
 }
 
-func (l *Listener) incRetryingCount() {
-	l.retryingCountMutex.Lock()
-	defer l.retryingCountMutex.Unlock()
+func (l *Listener) incHandlingCount() {
+	l.handlingCountMutex.Lock()
+	defer l.handlingCountMutex.Unlock()
 
-	l.retryingCount += 1
+	l.handlingCount += 1
 }
 
-func (l *Listener) decrRetryingCount() {
-	l.retryingCountMutex.Lock()
-	defer l.retryingCountMutex.Unlock()
+func (l *Listener) decrHandlingCount() {
+	l.handlingCountMutex.Lock()
+	defer l.handlingCountMutex.Unlock()
 
-	l.retryingCount -= 1
+	l.handlingCount -= 1
 }
