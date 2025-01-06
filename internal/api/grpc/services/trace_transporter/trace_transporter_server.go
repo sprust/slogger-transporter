@@ -39,7 +39,7 @@ func (s *Server) Push(
 	go func() {
 		defer s.decrRequestHandlingCount()
 
-		slog.Error("received trace transporter push request: " + strconv.Itoa(len(in.GetPayload())))
+		slog.Info("received trace transporter push request: " + strconv.Itoa(len(in.GetPayload())))
 
 		err := s.publisher.Publish(s.app.GetConfig().GetTraceTransporterQueueName(), []byte(in.GetPayload()))
 
