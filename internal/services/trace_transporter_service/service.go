@@ -15,20 +15,12 @@ import (
 )
 
 type Service struct {
-	app    *app.App
-	client *trace_collector.Client
+	app *app.App
 }
 
 func NewService(app *app.App) (*Service, error) {
-	client, err := trace_collector.NewClient(app.GetConfig().GetSloggerGrpcUrl())
-
-	if err != nil {
-		return nil, err
-	}
-
 	return &Service{
-		app:    app,
-		client: client,
+		app: app,
 	}, nil
 }
 
@@ -80,9 +72,21 @@ func (s *Service) Create(token string, traces []*CreatingTrace) error {
 		})
 	}
 
+	if len(request.Traces) == 0 {
+		return nil
+	}
+
 	ctx := s.makeContext(token)
 
-	response, err := s.client.Get().Create(ctx, &request)
+	client, err := s.getClient()
+
+	if err != nil {
+		return err
+	}
+
+	response, err := client.Get().Create(ctx, &request)
+
+	_ = client.Close()
 
 	if err != nil {
 		return err
@@ -143,9 +147,17 @@ func (s *Service) Update(token string, traces []*UpdatingTrace) error {
 		})
 	}
 
+	client, err := s.getClient()
+
+	if err != nil {
+		return err
+	}
+
 	ctx := s.makeContext(token)
 
-	response, err := s.client.Get().Update(ctx, &request)
+	response, err := client.Get().Update(ctx, &request)
+
+	_ = client.Close()
 
 	if err != nil {
 		return err
@@ -163,7 +175,20 @@ func (s *Service) Update(token string, traces []*UpdatingTrace) error {
 func (s *Service) Close() error {
 	slog.Warn("Closing trace transporter service...")
 
-	return s.client.Close()
+	return nil
+}
+
+// CreatingTrace
+// coroutines leak in google.golang.org/grpc@v1.69.2/internal/grpcsync/callback_serializer.go:88
+// at sharing with server of one application
+func (s *Service) getClient() (*trace_collector.Client, error) {
+	client, err := trace_collector.NewClient(s.app.GetConfig().GetSloggerGrpcUrl())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func (s *Service) makeContext(token string) context.Context {
