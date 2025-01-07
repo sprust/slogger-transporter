@@ -24,6 +24,7 @@ type Listener struct {
 	rmqParams          *config.RmqParams
 	connections        map[int]*connections.Connection
 	publisher          *Publisher
+	connectionsMutex   sync.Mutex
 	closing            bool
 	handlingCount      int
 	handlingCountMutex sync.Mutex
@@ -127,7 +128,7 @@ func (l *Listener) startWorker(workerId int) {
 
 		l.events.WorkerConnected(workerId)
 
-		l.connections[workerId] = connection
+		l.addConnection(workerId, connection)
 
 		deliveries, err := connection.Consume(l.queueSettings.QueueName)
 
@@ -155,6 +156,13 @@ func (l *Listener) declareQueue() error {
 	_ = connection.Close()
 
 	return err
+}
+
+func (l *Listener) addConnection(workerId int, connection *connections.Connection) {
+	l.connectionsMutex.Lock()
+	defer l.connectionsMutex.Unlock()
+
+	l.connections[workerId] = connection
 }
 
 func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
