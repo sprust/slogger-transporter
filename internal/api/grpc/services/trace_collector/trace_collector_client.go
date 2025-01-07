@@ -3,7 +3,6 @@ package trace_collector
 import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"log/slog"
 	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 )
 
@@ -31,7 +30,5 @@ func (c *Client) Get() trace_collector_gen.TraceCollectorClient {
 }
 
 func (c *Client) Close() error {
-	slog.Warn("Closing trace collector client...")
-
 	return c.conn.Close()
 }

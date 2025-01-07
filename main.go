@@ -132,7 +132,7 @@ func getCommands(commandName string) ([]commands.CommandInterface, error) {
 
 	handlingCommands = append(handlingCommands, command)
 
-	if commandName != commands.ServeGrpcCommandName && commandName != commands.StopGrpcCommandName {
+	if commandName != commands.ServeGrpcCommandName && commandName != commands.ManageCommandName {
 		serveRpcCommand, err := commands.GetCommand(commands.ServeGrpcCommandName)
 
 		if err != nil {

@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	GrpcManager_Stop_FullMethodName = "/slogger_transporter.GrpcManager/Stop"
+	GrpcManager_Stat_FullMethodName = "/slogger_transporter.GrpcManager/Stat"
 )
 
 // GrpcManagerClient is the client API for GrpcManager service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GrpcManagerClient interface {
 	Stop(ctx context.Context, in *GrpcManagerStopRequest, opts ...grpc.CallOption) (*GrpcManagerStopResponse, error)
+	Stat(ctx context.Context, in *GrpcManagerStatRequest, opts ...grpc.CallOption) (*GrpcManagerStatResponse, error)
 }
 
 type grpcManagerClient struct {
@@ -47,11 +49,22 @@ func (c *grpcManagerClient) Stop(ctx context.Context, in *GrpcManagerStopRequest
 	return out, nil
 }
 
+func (c *grpcManagerClient) Stat(ctx context.Context, in *GrpcManagerStatRequest, opts ...grpc.CallOption) (*GrpcManagerStatResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GrpcManagerStatResponse)
+	err := c.cc.Invoke(ctx, GrpcManager_Stat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GrpcManagerServer is the server API for GrpcManager service.
 // All implementations must embed UnimplementedGrpcManagerServer
 // for forward compatibility.
 type GrpcManagerServer interface {
 	Stop(context.Context, *GrpcManagerStopRequest) (*GrpcManagerStopResponse, error)
+	Stat(context.Context, *GrpcManagerStatRequest) (*GrpcManagerStatResponse, error)
 	mustEmbedUnimplementedGrpcManagerServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedGrpcManagerServer struct{}
 
 func (UnimplementedGrpcManagerServer) Stop(context.Context, *GrpcManagerStopRequest) (*GrpcManagerStopResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
+}
+func (UnimplementedGrpcManagerServer) Stat(context.Context, *GrpcManagerStatRequest) (*GrpcManagerStatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stat not implemented")
 }
 func (UnimplementedGrpcManagerServer) mustEmbedUnimplementedGrpcManagerServer() {}
 func (UnimplementedGrpcManagerServer) testEmbeddedByValue()                     {}
@@ -104,6 +120,24 @@ func _GrpcManager_Stop_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GrpcManager_Stat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GrpcManagerStatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcManagerServer).Stat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GrpcManager_Stat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcManagerServer).Stat(ctx, req.(*GrpcManagerStatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GrpcManager_ServiceDesc is the grpc.ServiceDesc for GrpcManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var GrpcManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Stop",
 			Handler:    _GrpcManager_Stop_Handler,
+		},
+		{
+			MethodName: "Stat",
+			Handler:    _GrpcManager_Stat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
