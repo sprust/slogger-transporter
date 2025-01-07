@@ -9,9 +9,10 @@ import (
 )
 
 type App struct {
-	ctx            context.Context
-	config         *config.Config
-	closeListeners []io.Closer
+	ctx                context.Context
+	config             *config.Config
+	closeListeners     []io.Closer
+	lastCloseListeners []io.Closer
 }
 
 func NewApp(ctx context.Context) App {
@@ -34,7 +35,7 @@ func (a *App) GetConfig() *config.Config {
 func (a *App) Close() error {
 	slog.Info("Closing app...")
 
-	for _, listener := range a.closeListeners {
+	for _, listener := range append(a.closeListeners, a.lastCloseListeners...) {
 		err := listener.Close()
 
 		if err != nil {
@@ -45,6 +46,10 @@ func (a *App) Close() error {
 	return nil
 }
 
-func (a *App) AddCloseListener(listener io.Closer) {
+func (a *App) AddFirstCloseListener(listener io.Closer) {
 	a.closeListeners = append(a.closeListeners, listener)
+}
+
+func (a *App) AddLastCloseListener(listener io.Closer) {
+	a.lastCloseListeners = append(a.closeListeners, listener)
 }

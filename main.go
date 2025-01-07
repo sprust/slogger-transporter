@@ -15,6 +15,7 @@ import (
 	"syscall"
 )
 
+var newApp = app.NewApp(context.Background())
 var customHandler *logging_service.CustomHandler
 
 func init() {
@@ -44,12 +45,12 @@ func init() {
 
 	var err error
 
-	customHandler, err = logging_service.NewCustomHandler(&slogLevel)
+	customHandler, err = logging_service.NewCustomHandler(&newApp, &slogLevel)
 
 	if err == nil {
 		slog.SetDefault(slog.New(customHandler))
 	} else {
-		slog.Error(err.Error())
+		panic(err)
 	}
 }
 
@@ -83,8 +84,6 @@ func main() {
 		panic(err)
 	}
 
-	newApp := app.NewApp(context.Background())
-
 	signals := make(chan os.Signal)
 
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -102,7 +101,7 @@ func main() {
 	waitGroup := sync.WaitGroup{}
 
 	for _, handlingCommand := range handlingCommands {
-		newApp.AddCloseListener(handlingCommand)
+		newApp.AddFirstCloseListener(handlingCommand)
 
 		waitGroup.Add(1)
 
