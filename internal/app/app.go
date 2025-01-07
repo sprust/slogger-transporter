@@ -33,7 +33,7 @@ func (a *App) GetConfig() *config.Config {
 }
 
 func (a *App) Close() error {
-	slog.Info("Closing app...")
+	slog.Warn("Closing app...")
 
 	for _, listener := range append(a.closeListeners, a.lastCloseListeners...) {
 		err := listener.Close()
