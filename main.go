@@ -9,9 +9,7 @@ import (
 	"os/signal"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
-	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/logging_service"
-	"sync"
 	"syscall"
 )
 
@@ -23,7 +21,7 @@ func init() {
 		panic(err)
 	}
 
-	logLevel := os.Getenv("LOG_LEVEL")
+	logLevel := newApp.GetConfig().GetLogLevel() // TODO not working
 
 	var slogLevel slog.Level
 
@@ -55,16 +53,6 @@ func init() {
 }
 
 func main() {
-	defer func() {
-		if customHandler != nil {
-			err := customHandler.Close()
-
-			if err != nil {
-				panic(err)
-			}
-		}
-	}()
-
 	args := os.Args
 	argsLen := len(args)
 
@@ -78,11 +66,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	handlingCommands, err := getCommands(args[1])
+	command, err := commands.GetCommand(args[1])
 
 	if err != nil {
 		panic(err)
 	}
+
+	newApp.AddFirstCloseListener(command)
 
 	signals := make(chan os.Signal)
 
@@ -91,6 +81,8 @@ func main() {
 	go func() {
 		<-signals
 
+		slog.Warn("received stop signal")
+
 		err = newApp.Close()
 
 		if err != nil {
@@ -98,49 +90,11 @@ func main() {
 		}
 	}()
 
-	waitGroup := sync.WaitGroup{}
-
-	for _, handlingCommand := range handlingCommands {
-		newApp.AddFirstCloseListener(handlingCommand)
-
-		waitGroup.Add(1)
-
-		go func() {
-			err = handlingCommand.Handle(&newApp, args[2:])
-
-			if err != nil {
-				panic(err)
-			}
-
-			waitGroup.Done()
-		}()
-	}
-
-	waitGroup.Wait()
-
-	slog.Warn("Exit")
-}
-
-func getCommands(commandName string) ([]commands.CommandInterface, error) {
-	var handlingCommands []commands.CommandInterface
-
-	command, err := commands.GetCommand(commandName)
+	err = command.Handle(&newApp, args[2:])
 
 	if err != nil {
-		return nil, errs.Err(err)
+		panic(err)
 	}
 
-	handlingCommands = append(handlingCommands, command)
-
-	if commandName != commands.ServeGrpcCommandName && commandName != commands.ManageCommandName {
-		serveRpcCommand, err := commands.GetCommand(commands.ServeGrpcCommandName)
-
-		if err != nil {
-			panic(err)
-		}
-
-		handlingCommands = append(handlingCommands, serveRpcCommand)
-	}
-
-	return handlingCommands, nil
+	slog.Warn("Exit")
 }

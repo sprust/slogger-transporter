@@ -2,6 +2,7 @@ package queue_service
 
 import (
 	"encoding/json"
+	"errors"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
@@ -27,6 +28,7 @@ type Listener struct {
 	publisher          *Publisher
 	connectionsMutex   sync.Mutex
 	closing            bool
+	closed             bool
 	handlingCount      int
 	handlingCountMutex sync.Mutex
 }
@@ -50,6 +52,12 @@ func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) 
 }
 
 func (l *Listener) Listen() error {
+	if l.closing {
+		return errs.Err(errors.New("listener is closing"))
+	}
+
+	l.closed = false
+
 	err := l.declareQueue()
 
 	if err != nil {
@@ -69,6 +77,10 @@ func (l *Listener) Listen() error {
 	}
 
 	waitGroup.Wait()
+
+	for !l.closed {
+		// wait for closing
+	}
 
 	return nil
 }
@@ -105,6 +117,9 @@ func (l *Listener) Close() error {
 	}
 
 	l.events.Closed()
+
+	l.closing = false
+	l.closed = true
 
 	return nil
 }

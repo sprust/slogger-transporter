@@ -18,6 +18,9 @@ restart:
 run:
 	go run main.go ${c}
 
+run-start:
+	go run main.go start
+
 run-serve-grpc:
 	go run main.go serve:grpc
 
@@ -37,6 +40,9 @@ grpc-generate:
 	protoc --go_out=./internal/api/grpc/gen/ \
 		--go-grpc_out=./internal/api/grpc/gen/ \
 			./internal/api/grpc/proto/*.proto
+
+bin-start:
+	./bin/main start
 
 bin-serve-grpc:
 	./bin/main serve:grpc

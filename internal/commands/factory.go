@@ -6,10 +6,12 @@ import (
 	"slogger-transporter/internal/commands/queue_listen"
 	"slogger-transporter/internal/commands/serve_grpc"
 	"slogger-transporter/internal/commands/serve_rpc"
+	"slogger-transporter/internal/commands/start"
 	"slogger-transporter/internal/services/errs"
 )
 
 const (
+	StartCommandName       = "start"
 	ServeGrpcCommandName   = "serve:grpc"
 	ManageCommandName      = "manage"
 	ServeRpcCommandName    = "serve:rpc"
@@ -17,6 +19,7 @@ const (
 )
 
 var commands = map[string]CommandInterface{
+	StartCommandName:       &start.Command{},
 	ServeGrpcCommandName:   &serve_grpc.ServeGrpcCommand{},
 	ManageCommandName:      &manage.Command{},
 	ServeRpcCommandName:    &serve_rpc.ServeRpcCommand{},

@@ -62,10 +62,6 @@ func (h *CustomHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-func (h *CustomHandler) Close() error {
-	return nil
-}
-
 func (h *CustomHandler) initConsoleHandler() {
 }
 
