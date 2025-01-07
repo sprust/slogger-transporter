@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
+	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/logging_service"
 	"sync"
 	"syscall"
@@ -127,7 +128,7 @@ func getCommands(commandName string) ([]commands.CommandInterface, error) {
 	command, err := commands.GetCommand(commandName)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	handlingCommands = append(handlingCommands, command)

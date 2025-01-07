@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"slogger-transporter/internal/services/errs"
 	"strconv"
 	"sync"
 )
@@ -56,7 +57,7 @@ func (c *Config) GetTraceTransporterQueueWorkersNum() (int, error) {
 	workersNum, err := strconv.Atoi(os.Getenv("TRACE_TRANSPORTER_QUEUE_WORKERS_NUM"))
 
 	if err != nil {
-		return 0, err
+		return 0, errs.Err(err)
 	}
 
 	return workersNum, nil

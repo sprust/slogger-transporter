@@ -5,6 +5,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
+	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"sync"
@@ -34,7 +35,7 @@ func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) 
 	settings, err := queue.GetSettings()
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return &Listener{
@@ -52,7 +53,7 @@ func (l *Listener) Listen() error {
 	err := l.declareQueue()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	waitGroup := sync.WaitGroup{}

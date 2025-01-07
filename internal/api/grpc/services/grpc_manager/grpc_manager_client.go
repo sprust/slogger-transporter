@@ -5,6 +5,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
+	"slogger-transporter/internal/services/errs"
 )
 
 type Client struct {
@@ -18,7 +19,7 @@ func NewClient(grpcUrl string) (*Client, error) {
 	conn, err := grpc.NewClient(grpcUrl, options)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	client := gen.NewGrpcManagerClient(conn)
@@ -33,5 +34,5 @@ func (c *Client) Get() gen.GrpcManagerClient {
 func (c *Client) Close() error {
 	slog.Warn("Closing grpc manager client...")
 
-	return c.conn.Close()
+	return errs.Err(c.conn.Close())
 }

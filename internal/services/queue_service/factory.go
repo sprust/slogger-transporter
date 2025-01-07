@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"slogger-transporter/internal/services/queue_service/queues/queue_trace_transporter"
 )
@@ -16,14 +17,14 @@ func NewFactory(app *app.App) (*Factory, error) {
 	transporter, err := createTransporter(app)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return &Factory{
 		items: map[string]objects.QueueInterface{
 			app.GetConfig().GetTraceTransporterQueueName(): transporter,
 		},
-	}, err
+	}, nil
 }
 
 func (f *Factory) GetQueue(name string) (objects.QueueInterface, error) {
@@ -31,14 +32,14 @@ func (f *Factory) GetQueue(name string) (objects.QueueInterface, error) {
 		return queue, nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("queue %s not found", name))
+	return nil, errs.Err(errors.New(fmt.Sprintf("queue %s not found", name)))
 }
 
 func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTransporter, error) {
 	queueWorkersNum, err := app.GetConfig().GetTraceTransporterQueueWorkersNum()
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	transporter, err := queue_trace_transporter.NewQueueTraceTransporter(
@@ -48,7 +49,7 @@ func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTranspo
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return transporter, nil

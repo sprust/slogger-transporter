@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"slogger-transporter/internal/config"
+	"slogger-transporter/internal/services/errs"
 )
 
 type App struct {
@@ -37,7 +38,7 @@ func (a *App) Close() error {
 		err := listener.Close()
 
 		if err != nil {
-			return err
+			return errs.Err(err)
 		}
 	}
 

@@ -3,6 +3,7 @@ package serve_rpc
 import (
 	"slogger-transporter/internal/api/rpc"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 )
 
 type ServeRpcCommand struct {
@@ -24,12 +25,12 @@ func (c *ServeRpcCommand) Handle(app *app.App, arguments []string) error {
 
 	err := c.server.Run()
 
-	return err
+	return errs.Err(err)
 }
 
 func (c *ServeRpcCommand) Close() error {
 	if c.server != nil {
-		return c.server.Close()
+		return errs.Err(c.server.Close())
 	}
 
 	return nil

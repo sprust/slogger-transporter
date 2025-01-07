@@ -14,6 +14,7 @@ import (
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/api/grpc/services/trace_transporter"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 )
 
 type Server struct {
@@ -40,25 +41,25 @@ func (s *Server) Run() error {
 	err := s.registerPingPongServer(s.grpcServer)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	err = s.registerTraceCollectorServer(s.grpcServer)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	err = s.registerTraceTransporterServer(s.grpcServer)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	err = s.registerGrpcManagerServer(s.grpcServer)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	listener, err := net.Listen("tcp", ":"+s.rpcPort)
@@ -66,7 +67,7 @@ func (s *Server) Run() error {
 	if err != nil {
 		slog.Error("Error listening: ", err.Error())
 
-		return err
+		return errs.Err(err)
 	}
 
 	slog.Info("Listening on " + s.rpcPort)
@@ -77,7 +78,7 @@ func (s *Server) Run() error {
 		slog.Error("Error serving: ", err.Error())
 	}
 
-	return err
+	return errs.Err(err)
 }
 
 func (s *Server) Close() error {
@@ -91,7 +92,7 @@ func (s *Server) Close() error {
 		err := server.Close()
 
 		if err != nil {
-			return err
+			return errs.Err(err)
 		}
 	}
 
@@ -116,7 +117,7 @@ func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
 	if err != nil {
 		slog.Error("Error creating collector: ", err.Error())
 
-		return err
+		return errs.Err(err)
 	}
 
 	trace_collector_gen.RegisterTraceCollectorServer(grpcServer, server)

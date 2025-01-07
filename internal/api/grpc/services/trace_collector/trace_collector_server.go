@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"time"
 )
 
@@ -23,7 +24,7 @@ func NewServer(app *app.App, sloggerGrpcUrl string) (*Server, error) {
 	client, err := grpc.NewClient(sloggerGrpcUrl, options)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return &Server{app: app, client: gen.NewTraceCollectorClient(client)}, nil

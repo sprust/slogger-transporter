@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_transporter_gen"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service"
 	"strconv"
 	"sync"
@@ -73,7 +74,7 @@ func (s *Server) Close() error {
 	}
 
 	if s.requestHandlingCount > 0 {
-		return errors.New("workers are still running")
+		return errs.Err(errors.New("workers are still running"))
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package queue_listen
 
 import (
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service"
 	"sync"
 )
@@ -22,20 +23,20 @@ func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
 	queueFactory, err := queue_service.NewFactory(app)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	for _, queueName := range c.getQueueNames(app) {
 		queue, err := queueFactory.GetQueue(queueName)
 
 		if err != nil {
-			return err
+			return errs.Err(err)
 		}
 
 		listener, err := queue_service.NewListener(app, queue)
 
 		if err != nil {
-			return err
+			return errs.Err(err)
 		}
 
 		c.listeners = append(c.listeners, listener)
@@ -67,7 +68,7 @@ func (c *QueueListenCommand) Close() error {
 		err := listener.Close()
 
 		if err != nil {
-			return err
+			return errs.Err(err)
 		}
 	}
 

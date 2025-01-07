@@ -5,11 +5,14 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slogger-transporter/internal/services/errs"
 	"sync"
 	"time"
 )
 
 const directory = "logs"
+
+// TODO: it write new line as \n
 
 type CustomHandler struct {
 	level              *slog.Level
@@ -30,7 +33,7 @@ func NewCustomHandler(level *slog.Level) (*CustomHandler, error) {
 	err := handler.initFileHandler()
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return handler, nil
@@ -38,15 +41,15 @@ func NewCustomHandler(level *slog.Level) (*CustomHandler, error) {
 
 func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
 	if err := h.consoleHandler.Handle(ctx, r); err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	if err := h.initFileHandler(); err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	if err := h.fileHandler.Handle(ctx, r); err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	return nil
@@ -77,7 +80,7 @@ func (h *CustomHandler) Close() error {
 	defer h.initFileMutex.Unlock()
 
 	if h.logFile != nil {
-		return h.logFile.Close()
+		return errs.Err(h.logFile.Close())
 	}
 
 	return nil
@@ -108,7 +111,7 @@ func (h *CustomHandler) initFileHandler() error {
 	if err != nil {
 		slog.Error("Failed to open log file: " + err.Error())
 
-		return err
+		return errs.Err(err)
 	}
 
 	h.logFile = logFile
@@ -126,7 +129,6 @@ func (h *CustomHandler) makeHandlerOptions() *slog.HandlerOptions {
 	return &slog.HandlerOptions{
 		Level: *h.level,
 	}
-
 }
 
 func (h *CustomHandler) makeLogFileName() string {

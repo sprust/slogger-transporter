@@ -10,6 +10,7 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"strconv"
 	"time"
 )
@@ -81,7 +82,7 @@ func (s *Service) Create(token string, traces []*CreatingTrace) error {
 	client, err := s.getClient()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	response, err := client.Get().Create(ctx, &request)
@@ -89,7 +90,7 @@ func (s *Service) Create(token string, traces []*CreatingTrace) error {
 	_ = client.Close()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	if response.GetStatusCode() != 200 {
@@ -150,7 +151,7 @@ func (s *Service) Update(token string, traces []*UpdatingTrace) error {
 	client, err := s.getClient()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	ctx := s.makeContext(token)
@@ -160,7 +161,7 @@ func (s *Service) Update(token string, traces []*UpdatingTrace) error {
 	_ = client.Close()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	if response.GetStatusCode() != 200 {
@@ -185,7 +186,7 @@ func (s *Service) getClient() (*trace_collector.Client, error) {
 	client, err := trace_collector.NewClient(s.app.GetConfig().GetSloggerGrpcUrl())
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return client, nil

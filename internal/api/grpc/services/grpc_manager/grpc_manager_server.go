@@ -6,6 +6,7 @@ import (
 	"runtime"
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 )
 
 type Server struct {
@@ -21,7 +22,7 @@ func (s *Server) Stop(ctx context.Context, in *gen.GrpcManagerStopRequest) (*gen
 	err := s.app.Close()
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	// this is never run

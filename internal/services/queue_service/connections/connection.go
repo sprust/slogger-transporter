@@ -4,6 +4,7 @@ import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"sync"
 )
 
@@ -24,7 +25,7 @@ func (c *Connection) DeclareQueue(queueName string) error {
 	err := c.Init()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	_, err = c.channel.QueueDeclare(
@@ -36,14 +37,14 @@ func (c *Connection) DeclareQueue(queueName string) error {
 		nil,
 	)
 
-	return err
+	return errs.Err(err)
 }
 
 func (c *Connection) Consume(queueName string) (<-chan amqp.Delivery, error) {
 	err := c.Init()
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	deliveries, err := c.channel.Consume(
@@ -57,7 +58,7 @@ func (c *Connection) Consume(queueName string) (<-chan amqp.Delivery, error) {
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return deliveries, nil
@@ -67,7 +68,7 @@ func (c *Connection) Publish(queueName string, payload []byte) error {
 	err := c.Init()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	return c.channel.Publish(
@@ -105,7 +106,7 @@ func (c *Connection) Init() error {
 	conn, ch, err := c.connect()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	c.connection = conn
@@ -128,7 +129,7 @@ func (c *Connection) connect() (*amqp.Connection, *amqp.Channel, error) {
 	connection, err := amqp.Dial(url)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.Err(err)
 	}
 
 	channel, err := connection.Channel()
@@ -136,7 +137,7 @@ func (c *Connection) connect() (*amqp.Connection, *amqp.Channel, error) {
 	if err != nil {
 		_ = connection.Close()
 
-		return nil, nil, err
+		return nil, nil, errs.Err(err)
 	}
 
 	return connection, channel, nil

@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"slogger-transporter/internal/api/rpc/ping_pong"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 )
 
 var functions = []any{
@@ -33,18 +34,18 @@ func (s *Server) Run() error {
 	listener, err := net.Listen("tcp", ":"+s.rpcPort)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	s.listener = listener
 
 	for _, function := range functions {
-		err := rpc.Register(function)
+		err = rpc.Register(function)
 
 		if err != nil {
 			slog.Error(err.Error())
 
-			return err
+			return errs.Err(err)
 		}
 	}
 
@@ -76,5 +77,5 @@ func (s *Server) Close() error {
 
 	s.closing = true
 
-	return s.listener.Close()
+	return errs.Err(s.listener.Close())
 }

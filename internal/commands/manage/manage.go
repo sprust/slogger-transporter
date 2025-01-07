@@ -7,6 +7,7 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
 	"slogger-transporter/internal/api/grpc/services/grpc_manager"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"strings"
 	"time"
 )
@@ -31,43 +32,40 @@ func (c *Command) Handle(app *app.App, arguments []string) error {
 
 	c.client, err = grpc_manager.NewClient(":" + grpcPort)
 
-	if err != nil {
-		return err
+	if err == nil {
+		if comm == "stop" {
+			err = c.handleStop(app)
+		} else if comm == "stat" {
+			err = c.handleStat(app)
+		} else {
+			err = errors.New("unknown command " + comm)
+		}
 	}
 
-	if comm == "stop" {
-		err = c.handleStop(app)
-	} else if comm == "stat" {
-		err = c.handleStat(app)
-	} else {
-		return errors.New("unknown command " + comm)
-	}
-
-	return err
+	return errs.Err(err)
 }
 
 func (c *Command) Close() error {
 	var err error
 
 	if c.client != nil {
-
 		err = c.client.Close()
 	}
 
 	c.closing = true
 
-	return err
+	return errs.Err(err)
 }
 
 func (c *Command) getCommandByArguments(arguments []string) (string, error) {
 	if len(arguments) != 1 {
-		return "", errors.New("invalid number of arguments")
+		return "", errs.Err(errors.New("invalid number of arguments"))
 	}
 
 	comm := arguments[0]
 
 	if comm == "" {
-		return "", errors.New("command is empty")
+		return "", errs.Err(errors.New("command is empty"))
 	}
 
 	return comm, nil
@@ -83,7 +81,7 @@ func (c *Command) handleStop(app *app.App) error {
 			return nil
 		}
 
-		return err
+		return errs.Err(err)
 	}
 
 	// this is never run
@@ -100,7 +98,7 @@ func (c *Command) handleStat(app *app.App) error {
 		response, err := c.client.Get().Stat(app.GetContext(), &gen.GrpcManagerStatRequest{})
 
 		if err != nil {
-			return err
+			return errs.Err(err)
 		}
 
 		fmt.Printf("go: %d", response.NumGoroutine)

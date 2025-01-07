@@ -3,6 +3,7 @@ package serve_grpc
 import (
 	"slogger-transporter/internal/api/grpc"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 )
 
 type ServeGrpcCommand struct {
@@ -27,12 +28,12 @@ func (c *ServeGrpcCommand) Handle(app *app.App, arguments []string) error {
 
 	err := c.server.Run()
 
-	return err
+	return errs.Err(err)
 }
 
 func (c *ServeGrpcCommand) Close() error {
 	if c.server != nil {
-		return c.server.Close()
+		return errs.Err(c.server.Close())
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"slogger-transporter/internal/services/trace_transporter_service"
@@ -32,7 +33,7 @@ func NewQueueTraceTransporter(app *app.App, queueName string, queueWorkersNum in
 	transporter, err := trace_transporter_service.NewService(app)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err)
 	}
 
 	return &QueueTraceTransporter{
@@ -70,14 +71,14 @@ func (q *QueueTraceTransporter) Publish(payload []byte) error {
 	settings, err := q.GetSettings()
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	err = connection.Publish(settings.QueueName, payload)
 
 	_ = connection.Close()
 
-	return err
+	return errs.Err(err)
 }
 
 func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
@@ -86,7 +87,7 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 	err := json.Unmarshal(job.Payload, &payload)
 
 	if err != nil {
-		return err
+		return errs.Err(err)
 	}
 
 	var creatingTraces []*trace_transporter_service.CreatingTrace
@@ -99,7 +100,7 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 			err = json.Unmarshal([]byte(action.Data), &trace)
 
 			if err != nil {
-				return err
+				return errs.Err(err)
 			}
 
 			creatingTraces = append(creatingTraces, &trace_transporter_service.CreatingTrace{
@@ -120,7 +121,7 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 			err = json.Unmarshal([]byte(action.Data), &trace)
 
 			if err != nil {
-				return err
+				return errs.Err(err)
 			}
 
 			updatingTraces = append(updatingTraces, &trace_transporter_service.UpdatingTrace{
@@ -157,7 +158,7 @@ func (q *QueueTraceTransporter) Handle(job *objects.Job) error {
 	}
 
 	if len(errorsTexts) > 0 {
-		return errors.New(strings.Join(errorsTexts, ", "))
+		return errs.Err(errors.New(strings.Join(errorsTexts, ", ")))
 	}
 
 	return nil
