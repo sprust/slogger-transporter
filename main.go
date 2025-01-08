@@ -94,7 +94,10 @@ func initLogging() {
 		}
 	}
 
-	customHandler, err := logging_service.NewCustomHandler(&newApp, logging_service.NewLevelPolicy(slogLevels))
+	customHandler, err := logging_service.NewCustomHandler(
+		&newApp,
+		logging_service.NewLevelPolicy(slogLevels),
+	)
 
 	if err == nil {
 		slog.SetDefault(slog.New(customHandler))
