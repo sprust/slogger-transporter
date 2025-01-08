@@ -1,22 +1,18 @@
 package queue_service
 
 import (
-	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 )
 
 type Publisher struct {
-	app *app.App
 }
 
-func NewPublisher(app *app.App) *Publisher {
-	return &Publisher{
-		app: app,
-	}
+func NewPublisher() *Publisher {
+	return &Publisher{}
 }
 
 func (p *Publisher) Publish(queueName string, payload []byte) error {
-	queueFactory, err := NewFactory(p.app)
+	queueFactory, err := NewFactory()
 
 	if err != nil {
 		return errs.Err(err)

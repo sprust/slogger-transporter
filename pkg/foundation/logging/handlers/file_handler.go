@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 	"time"
 )
@@ -78,6 +78,10 @@ func (h *FileHandler) freshFileHandler() error {
 
 	h.initFileMutex.Lock()
 	defer h.initFileMutex.Unlock()
+
+	if actualLogFileName == h.currentLogFileName {
+		return nil
+	}
 
 	filePath := filepath.Join(directory, actualLogFileName)
 

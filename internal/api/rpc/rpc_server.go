@@ -6,8 +6,7 @@ import (
 	"net"
 	"net/rpc"
 	"slogger-transporter/internal/api/rpc/ping_pong"
-	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 )
 
 var functions = []any{
@@ -15,15 +14,13 @@ var functions = []any{
 }
 
 type Server struct {
-	app      *app.App
 	rpcPort  string
 	listener net.Listener
 	closing  bool
 }
 
-func NewServer(app *app.App, rpcPort string) *Server {
+func NewServer(rpcPort string) *Server {
 	server := &Server{
-		app:     app,
 		rpcPort: rpcPort,
 	}
 

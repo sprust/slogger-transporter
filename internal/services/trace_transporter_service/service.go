@@ -9,20 +9,17 @@ import (
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
-	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/internal/config"
+	"slogger-transporter/pkg/foundation/errs"
 	"strconv"
 	"time"
 )
 
 type Service struct {
-	app *app.App
 }
 
-func NewService(app *app.App) (*Service, error) {
-	return &Service{
-		app: app,
-	}, nil
+func NewService() (*Service, error) {
+	return &Service{}, nil
 }
 
 func (s *Service) Create(token string, traces []*CreatingTrace) error {
@@ -183,7 +180,7 @@ func (s *Service) Close() error {
 // coroutines leak in google.golang.org/grpc@v1.69.2/internal/grpcsync/callback_serializer.go:88
 // at sharing with server of one application
 func (s *Service) getClient() (*trace_collector.Client, error) {
-	client, err := trace_collector.NewClient(s.app.GetConfig().GetSloggerGrpcUrl())
+	client, err := trace_collector.NewClient(config.GetConfig().GetSloggerGrpcUrl())
 
 	if err != nil {
 		return nil, errs.Err(err)
@@ -193,7 +190,7 @@ func (s *Service) getClient() (*trace_collector.Client, error) {
 }
 
 func (s *Service) makeContext(token string) context.Context {
-	ctx := context.WithoutCancel(s.app.GetContext())
+	ctx := context.TODO()
 
 	md := metadata.New(map[string]string{
 		"authorization": "Bearer " + token,

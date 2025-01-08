@@ -2,7 +2,7 @@ package config
 
 import (
 	"os"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"strconv"
 	"sync"
 )
@@ -17,6 +17,17 @@ type RmqParams struct {
 	RmqPass string
 	RmqHost string
 	RmqPort string
+}
+
+var instance *Config
+var once sync.Once
+
+func GetConfig() *Config {
+	once.Do(func() {
+		instance = &Config{}
+	})
+
+	return instance
 }
 
 func (c *Config) GetRmqConfig() *RmqParams {

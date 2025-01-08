@@ -1,4 +1,4 @@
-package logging_service
+package logging
 
 import "log/slog"
 

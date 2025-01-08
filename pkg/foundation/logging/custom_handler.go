@@ -1,27 +1,24 @@
-package logging_service
+package logging
 
 import (
 	"context"
 	"log/slog"
-	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/errs"
-	"slogger-transporter/internal/services/logging_service/handlers"
+	"slogger-transporter/pkg/foundation/errs"
+	"slogger-transporter/pkg/foundation/logging/handlers"
 )
 
 type CustomHandler struct {
 	levelPolicy    *LevelPolicy
-	consoleHandler slog.Handler
-	fileHandler    slog.Handler
+	consoleHandler *handlers.ConsoleHandler
+	fileHandler    *handlers.FileHandler
 }
 
-func NewCustomHandler(app *app.App, levelPolicy *LevelPolicy) (*CustomHandler, error) {
+func NewCustomHandler(levelPolicy *LevelPolicy) (*CustomHandler, error) {
 	fileHandler, err := handlers.NewFileHandler()
 
 	if err != nil {
 		return nil, err
 	}
-
-	app.AddLastCloseListener(fileHandler)
 
 	handler := &CustomHandler{
 		levelPolicy:    levelPolicy,
@@ -53,4 +50,12 @@ func (h *CustomHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 
 func (h *CustomHandler) WithGroup(name string) slog.Handler {
 	return h
+}
+
+func (h *CustomHandler) Close() error {
+	if err := h.fileHandler.Close(); err != nil {
+		return errs.Err(err)
+	}
+
+	return nil
 }

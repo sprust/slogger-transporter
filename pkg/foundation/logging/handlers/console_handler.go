@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 )
 
 const (

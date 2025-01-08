@@ -3,26 +3,34 @@ package connections
 import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/internal/config"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 )
 
 type Connection struct {
-	app        *app.App
+	url        string
 	connection *amqp.Connection
 	channel    *amqp.Channel
 	mutex      sync.Mutex
 }
 
-func NewConnection(app *app.App) *Connection {
-	return &Connection{
-		app: app,
-	}
+func NewConnection() *Connection {
+	rmqParams := config.GetConfig().GetRmqConfig()
+
+	url := fmt.Sprintf(
+		"amqp://%s:%s@%s:%s/",
+		rmqParams.RmqUser,
+		rmqParams.RmqPass,
+		rmqParams.RmqHost,
+		rmqParams.RmqPort,
+	)
+
+	return &Connection{url: url}
 }
 
 func (c *Connection) DeclareQueue(queueName string) error {
-	err := c.Init()
+	err := c.init()
 
 	if err != nil {
 		return errs.Err(err)
@@ -41,7 +49,7 @@ func (c *Connection) DeclareQueue(queueName string) error {
 }
 
 func (c *Connection) Consume(queueName string) (<-chan amqp.Delivery, error) {
-	err := c.Init()
+	err := c.init()
 
 	if err != nil {
 		return nil, errs.Err(err)
@@ -65,7 +73,7 @@ func (c *Connection) Consume(queueName string) (<-chan amqp.Delivery, error) {
 }
 
 func (c *Connection) Publish(queueName string, payload []byte) error {
-	err := c.Init()
+	err := c.init()
 
 	if err != nil {
 		return errs.Err(err)
@@ -95,7 +103,7 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-func (c *Connection) Init() error {
+func (c *Connection) init() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -116,17 +124,7 @@ func (c *Connection) Init() error {
 }
 
 func (c *Connection) connect() (*amqp.Connection, *amqp.Channel, error) {
-	rmqParams := c.app.GetConfig().GetRmqConfig()
-
-	url := fmt.Sprintf(
-		"amqp://%s:%s@%s:%s/",
-		rmqParams.RmqUser,
-		rmqParams.RmqPass,
-		rmqParams.RmqHost,
-		rmqParams.RmqPort,
-	)
-
-	connection, err := amqp.Dial(url)
+	connection, err := amqp.Dial(c.url)
 
 	if err != nil {
 		return nil, nil, errs.Err(err)

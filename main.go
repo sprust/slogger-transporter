@@ -1,79 +1,44 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log/slog"
 	"os"
-	"os/signal"
 	"slices"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
-	"slogger-transporter/internal/services/logging_service"
+	"slogger-transporter/internal/config"
+	"slogger-transporter/pkg/foundation/app"
 	"strings"
-	"syscall"
 )
-
-var newApp = app.NewApp(context.Background())
 
 func init() {
 	if err := godotenv.Load(); err != nil {
 		panic(err)
 	}
-
-	initLogging()
 }
 
 func main() {
 	args := os.Args
-	argsLen := len(args)
 
-	if argsLen == 1 {
-		fmt.Println("Commands:")
+	var commandName string
+	var commandArgs []string
 
-		for key, command := range commands.GetCommands() {
-			fmt.Printf(" %s %s - %s\n", key, command.Parameters(), command.Title())
-		}
-
-		os.Exit(0)
+	if len(args) > 1 {
+		commandName = args[1]
 	}
 
-	command, err := commands.GetCommand(args[1])
-
-	if err != nil {
-		panic(err)
+	if len(args) > 2 {
+		commandArgs = args[2:]
 	}
 
-	newApp.AddFirstCloseListener(command)
+	newApp := app.NewApp(commands.GetCommands(), getLogLevels())
 
-	signals := make(chan os.Signal)
-
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		<-signals
-
-		slog.Warn("received stop signal")
-
-		err = newApp.Close()
-
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	err = command.Handle(&newApp, args[2:])
-
-	if err != nil {
-		panic(err)
-	}
-
-	slog.Warn("Exit")
+	newApp.Start(commandName, commandArgs)
 }
 
-func initLogging() {
-	logLevels := strings.Split(newApp.GetConfig().GetLogLevels(), ",")
+func getLogLevels() []slog.Level {
+	logLevels := strings.Split(config.GetConfig().GetLogLevels(), ",")
 
 	var slogLevels []slog.Level
 
@@ -94,14 +59,5 @@ func initLogging() {
 		}
 	}
 
-	customHandler, err := logging_service.NewCustomHandler(
-		&newApp,
-		logging_service.NewLevelPolicy(slogLevels),
-	)
-
-	if err == nil {
-		slog.SetDefault(slog.New(customHandler))
-	} else {
-		panic(err)
-	}
+	return slogLevels
 }

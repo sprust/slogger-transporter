@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
+	atomic2 "slogger-transporter/pkg/foundation/atomic"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 	"time"
 )
@@ -19,44 +19,50 @@ const (
 )
 
 type Listener struct {
-	app                *app.App
-	queue              objects.QueueInterface
-	queueSettings      *objects.QueueSettings
-	events             *Events
-	rmqParams          *config.RmqParams
-	connections        map[int]*connections.Connection
-	publisher          *Publisher
-	connectionsMutex   sync.Mutex
-	closing            bool
-	closed             bool
-	handlingCount      int
-	handlingCountMutex sync.Mutex
+	queue            objects.QueueInterface
+	queueSettings    *objects.QueueSettings
+	events           *Events
+	rmqParams        *config.RmqParams
+	connections      map[int]*connections.Connection
+	publisher        *Publisher
+	connectionsMutex sync.Mutex
+	closing          atomic2.Boolean
+	closed           atomic2.Boolean
+	handlingCount    atomic2.Counter
 }
 
-func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) {
+func NewListener(queue objects.QueueInterface) (*Listener, error) {
 	settings, err := queue.GetSettings()
 
 	if err != nil {
 		return nil, errs.Err(err)
 	}
 
-	return &Listener{
-		app:           app,
+	listener := &Listener{
 		queue:         queue,
 		queueSettings: settings,
-		rmqParams:     app.GetConfig().GetRmqConfig(),
-		events:        NewEvents(app, settings.QueueName),
+		rmqParams:     config.GetConfig().GetRmqConfig(),
+		events:        NewEvents(settings.QueueName),
 		connections:   make(map[int]*connections.Connection),
-		publisher:     NewPublisher(app),
-	}, nil
+		publisher:     NewPublisher(),
+	}
+
+	listener.closed.Set(true)
+	listener.closing.Set(false)
+
+	return listener, nil
 }
 
 func (l *Listener) Listen() error {
-	if l.closing {
+	if l.closing.Get() {
 		return errs.Err(errors.New("listener is closing"))
 	}
 
-	l.closed = false
+	if !l.closed.Get() {
+		return errs.Err(errors.New("listener is not closed"))
+	}
+
+	l.closed.Set(false)
 
 	err := l.declareQueue()
 
@@ -78,7 +84,7 @@ func (l *Listener) Listen() error {
 
 	waitGroup.Wait()
 
-	for !l.closed {
+	for !l.closed.Get() {
 		// wait for closing
 	}
 
@@ -88,7 +94,7 @@ func (l *Listener) Listen() error {
 func (l *Listener) Close() error {
 	l.events.Closing()
 
-	l.closing = true
+	l.closing.Set(true)
 
 	for workerId, connection := range l.connections {
 		err := connection.Close()
@@ -98,12 +104,12 @@ func (l *Listener) Close() error {
 		}
 	}
 
-	if l.handlingCount > 0 {
+	if l.handlingCount.Get() > 0 {
 		start := time.Now()
 
 		l.events.JobsFinishWaiting(waitingWorkersEndingInSeconds)
 
-		for l.handlingCount > 0 {
+		for l.handlingCount.Get() > 0 {
 			time.Sleep(1 * time.Second)
 
 			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
@@ -118,8 +124,8 @@ func (l *Listener) Close() error {
 
 	l.events.Closed()
 
-	l.closing = false
-	l.closed = true
+	l.closing.Set(false)
+	l.closed.Set(true)
 
 	return nil
 }
@@ -128,7 +134,7 @@ func (l *Listener) startWorker(workerId int) {
 	isReconnect := false
 
 	for {
-		if l.closing {
+		if l.closing.Get() || l.closed.Get() {
 			break
 		}
 
@@ -140,7 +146,7 @@ func (l *Listener) startWorker(workerId int) {
 			isReconnect = true
 		}
 
-		connection := connections.NewConnection(l.app)
+		connection := connections.NewConnection()
 
 		l.events.WorkerConnected(workerId)
 
@@ -165,7 +171,7 @@ func (l *Listener) startWorker(workerId int) {
 }
 
 func (l *Listener) declareQueue() error {
-	connection := connections.NewConnection(l.app)
+	connection := connections.NewConnection()
 
 	err := connection.DeclareQueue(l.queueSettings.QueueName)
 
@@ -182,7 +188,7 @@ func (l *Listener) addConnection(workerId int, connection *connections.Connectio
 }
 
 func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
-	l.incHandlingCount()
+	l.handlingCount.Increment()
 
 	l.events.WorkerDeliveryReceived(workerId, len(delivery.Body))
 
@@ -192,14 +198,14 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 
 	if err != nil {
 		l.events.WorkerMessageUnmarshalFailed(workerId, err)
-		l.decrHandlingCount()
+		l.handlingCount.Decrement()
 		return
 	}
 
 	err = l.queue.Handle(&objects.Job{WorkerId: workerId, Payload: []byte(message.Payload)})
 
 	if err == nil {
-		l.decrHandlingCount()
+		l.handlingCount.Decrement()
 		return
 	}
 
@@ -209,12 +215,12 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 
 	if message.Tries > maxTries {
 		l.events.WorkerRetryingMessageMaxTriesReached(workerId, &message)
-		l.decrHandlingCount()
+		l.handlingCount.Decrement()
 		return
 	}
 
 	go func() {
-		defer l.decrHandlingCount()
+		defer l.handlingCount.Decrement()
 
 		l.events.WorkerMessageRetry(workerId, &message)
 
@@ -241,18 +247,4 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 			l.events.WorkerRetryingMessagePublished(workerId, &message)
 		}
 	}()
-}
-
-func (l *Listener) incHandlingCount() {
-	l.handlingCountMutex.Lock()
-	defer l.handlingCountMutex.Unlock()
-
-	l.handlingCount += 1
-}
-
-func (l *Listener) decrHandlingCount() {
-	l.handlingCountMutex.Lock()
-	defer l.handlingCountMutex.Unlock()
-
-	l.handlingCount -= 1
 }
