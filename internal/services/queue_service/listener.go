@@ -19,17 +19,16 @@ const (
 )
 
 type Listener struct {
-	queue              objects.QueueInterface
-	queueSettings      *objects.QueueSettings
-	events             *Events
-	rmqParams          *config.RmqParams
-	connections        map[int]*connections.Connection
-	publisher          *Publisher
-	connectionsMutex   sync.Mutex
-	closing            atomic.Boolean
-	closed             atomic.Boolean
-	handlingCount      int
-	handlingCountMutex sync.Mutex
+	queue            objects.QueueInterface
+	queueSettings    *objects.QueueSettings
+	events           *Events
+	rmqParams        *config.RmqParams
+	connections      map[int]*connections.Connection
+	publisher        *Publisher
+	connectionsMutex sync.Mutex
+	closing          atomic.Boolean
+	closed           atomic.Boolean
+	handlingCount    atomic.Counter
 }
 
 func NewListener(queue objects.QueueInterface) (*Listener, error) {
@@ -96,12 +95,12 @@ func (l *Listener) Close() error {
 		}
 	}
 
-	if l.handlingCount > 0 {
+	if l.handlingCount.Get() > 0 {
 		start := time.Now()
 
 		l.events.JobsFinishWaiting(waitingWorkersEndingInSeconds)
 
-		for l.handlingCount > 0 {
+		for l.handlingCount.Get() > 0 {
 			time.Sleep(1 * time.Second)
 
 			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
@@ -180,7 +179,7 @@ func (l *Listener) addConnection(workerId int, connection *connections.Connectio
 }
 
 func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
-	l.incHandlingCount()
+	l.handlingCount.Increment()
 
 	l.events.WorkerDeliveryReceived(workerId, len(delivery.Body))
 
@@ -190,14 +189,14 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 
 	if err != nil {
 		l.events.WorkerMessageUnmarshalFailed(workerId, err)
-		l.decrHandlingCount()
+		l.handlingCount.Decrement()
 		return
 	}
 
 	err = l.queue.Handle(&objects.Job{WorkerId: workerId, Payload: []byte(message.Payload)})
 
 	if err == nil {
-		l.decrHandlingCount()
+		l.handlingCount.Decrement()
 		return
 	}
 
@@ -207,12 +206,12 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 
 	if message.Tries > maxTries {
 		l.events.WorkerRetryingMessageMaxTriesReached(workerId, &message)
-		l.decrHandlingCount()
+		l.handlingCount.Decrement()
 		return
 	}
 
 	go func() {
-		defer l.decrHandlingCount()
+		defer l.handlingCount.Decrement()
 
 		l.events.WorkerMessageRetry(workerId, &message)
 
@@ -239,18 +238,4 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 			l.events.WorkerRetryingMessagePublished(workerId, &message)
 		}
 	}()
-}
-
-func (l *Listener) incHandlingCount() {
-	l.handlingCountMutex.Lock()
-	defer l.handlingCountMutex.Unlock()
-
-	l.handlingCount += 1
-}
-
-func (l *Listener) decrHandlingCount() {
-	l.handlingCountMutex.Lock()
-	defer l.handlingCountMutex.Unlock()
-
-	l.handlingCount -= 1
 }
