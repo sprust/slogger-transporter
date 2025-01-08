@@ -7,9 +7,9 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_transporter_gen"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/queue_service"
+	"slogger-transporter/pkg/foundation/atomic"
 	"slogger-transporter/pkg/foundation/errs"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -18,9 +18,8 @@ const waitingWorkersEndingInSeconds = 10
 type Server struct {
 	gen.UnimplementedTraceTransporterServer
 	publisher            *queue_service.Publisher
-	closing              bool
-	requestHandlingCount int
-	requestHandlingMutex sync.Mutex
+	closing              atomic.Boolean
+	requestHandlingCount atomic.Counter
 }
 
 func NewServer() *Server {
@@ -33,10 +32,14 @@ func (s *Server) Push(
 	ctx context.Context,
 	in *gen.TraceTransporterPushRequest,
 ) (*gen.TraceTransporterResponse, error) {
-	s.incRequestHandlingCount()
+	if s.closing.Get() {
+		return nil, errs.Err(errors.New("server is closing"))
+	}
+
+	s.requestHandlingCount.Increment()
 
 	go func() {
-		defer s.decrRequestHandlingCount()
+		s.requestHandlingCount.Decrement()
 
 		slog.Info("received trace transporter push request: " + strconv.Itoa(len(in.GetPayload())))
 
@@ -53,14 +56,14 @@ func (s *Server) Push(
 func (s *Server) Close() error {
 	slog.Warn("Closing trace transporter server...")
 
-	s.closing = true
+	s.closing.Set(true)
 
-	if s.requestHandlingCount > 0 {
+	if s.requestHandlingCount.Get() > 0 {
 		start := time.Now()
 
 		slog.Info("Waiting for workers to finish " + strconv.Itoa(waitingWorkersEndingInSeconds) + " seconds...")
 
-		for s.requestHandlingCount > 0 {
+		for s.requestHandlingCount.Get() > 0 {
 			time.Sleep(1 * time.Second)
 
 			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
@@ -71,23 +74,9 @@ func (s *Server) Close() error {
 		}
 	}
 
-	if s.requestHandlingCount > 0 {
+	if s.requestHandlingCount.Get() > 0 {
 		return errs.Err(errors.New("workers are still running"))
 	}
 
 	return nil
-}
-
-func (s *Server) incRequestHandlingCount() {
-	s.requestHandlingMutex.Lock()
-	defer s.requestHandlingMutex.Unlock()
-
-	s.requestHandlingCount += 1
-}
-
-func (s *Server) decrRequestHandlingCount() {
-	s.requestHandlingMutex.Lock()
-	defer s.requestHandlingMutex.Unlock()
-
-	s.requestHandlingCount -= 1
 }

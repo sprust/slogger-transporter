@@ -9,13 +9,24 @@ import (
 )
 
 type Connection struct {
+	url        string
 	connection *amqp.Connection
 	channel    *amqp.Channel
 	mutex      sync.Mutex
 }
 
 func NewConnection() *Connection {
-	return &Connection{}
+	rmqParams := config.GetConfig().GetRmqConfig()
+
+	url := fmt.Sprintf(
+		"amqp://%s:%s@%s:%s/",
+		rmqParams.RmqUser,
+		rmqParams.RmqPass,
+		rmqParams.RmqHost,
+		rmqParams.RmqPort,
+	)
+
+	return &Connection{url: url}
 }
 
 func (c *Connection) DeclareQueue(queueName string) error {
@@ -113,17 +124,7 @@ func (c *Connection) init() error {
 }
 
 func (c *Connection) connect() (*amqp.Connection, *amqp.Channel, error) {
-	rmqParams := config.GetConfig().GetRmqConfig()
-
-	url := fmt.Sprintf(
-		"amqp://%s:%s@%s:%s/",
-		rmqParams.RmqUser,
-		rmqParams.RmqPass,
-		rmqParams.RmqHost,
-		rmqParams.RmqPort,
-	)
-
-	connection, err := amqp.Dial(url)
+	connection, err := amqp.Dial(c.url)
 
 	if err != nil {
 		return nil, nil, errs.Err(err)

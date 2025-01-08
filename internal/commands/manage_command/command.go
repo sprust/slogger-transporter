@@ -10,6 +10,7 @@ import (
 	"slogger-transporter/internal/api/grpc/services/grpc_manager"
 	"slogger-transporter/internal/api/grpc/services/ping_pong"
 	"slogger-transporter/internal/config"
+	"slogger-transporter/pkg/foundation/atomic"
 	"slogger-transporter/pkg/foundation/errs"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 
 type Command struct {
 	managerClient *grpc_manager.Client
-	closing       bool
+	closing       atomic.Boolean
 }
 
 func (c *Command) Title() string {
@@ -45,6 +46,8 @@ func (c *Command) Handle(ctx context.Context, arguments []string) error {
 		}
 	}
 
+	c.closing.Set(false)
+
 	return errs.Err(err)
 }
 
@@ -55,7 +58,7 @@ func (c *Command) Close() error {
 		err = c.managerClient.Close()
 	}
 
-	c.closing = true
+	c.closing.Set(true)
 
 	return errs.Err(err)
 }
@@ -119,7 +122,7 @@ func (c *Command) handleStop() error {
 
 func (c *Command) handleStat() error {
 	for {
-		if c.closing == true {
+		if c.closing.Get() {
 			break
 		}
 

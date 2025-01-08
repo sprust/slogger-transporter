@@ -79,6 +79,10 @@ func (h *FileHandler) freshFileHandler() error {
 	h.initFileMutex.Lock()
 	defer h.initFileMutex.Unlock()
 
+	if actualLogFileName == h.currentLogFileName {
+		return nil
+	}
+
 	filePath := filepath.Join(directory, actualLogFileName)
 
 	if h.logFile != nil {
