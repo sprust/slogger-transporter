@@ -129,12 +129,12 @@ func (c *Command) handleStat() error {
 			return errs.Err(err)
 		}
 
-		fmt.Printf("go: %d", response.NumGoroutine)
+		fmt.Printf("go=%d", response.NumGoroutine)
 
-		fmt.Printf("\tAlloc = %v MiB", response.AllocMiB)
-		fmt.Printf("\tTotalAlloc = %v MiB", response.TotalAllocMiB)
-		fmt.Printf("\tSys = %v MiB", response.SysMiB)
-		fmt.Printf("\tNumGC = %v\n", response.NumGC)
+		fmt.Printf("\tAlloc=%v_MiB", response.AllocMiB)
+		fmt.Printf("\tTotalAlloc=%v_MiB", response.TotalAllocMiB)
+		fmt.Printf("\tSys=%v_MiB", response.SysMiB)
+		fmt.Printf("\tNumGC=%v\n", response.NumGC)
 
 		time.Sleep(1 * time.Second)
 	}
