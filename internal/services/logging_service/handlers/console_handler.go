@@ -59,8 +59,8 @@ func (h *ConsoleHandler) wrapColor(level slog.Level, msg string) string {
 	case slog.LevelError:
 		wrapText = red
 	default:
-		wrapText = reset
+		wrapText = ""
 	}
 
-	return wrapText + msg + wrapText
+	return wrapText + msg + reset
 }
