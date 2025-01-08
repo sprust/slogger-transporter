@@ -7,49 +7,22 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"slices"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
 	"slogger-transporter/internal/services/logging_service"
+	"strings"
 	"syscall"
 )
 
 var newApp = app.NewApp(context.Background())
-var customHandler *logging_service.CustomHandler
 
 func init() {
 	if err := godotenv.Load(); err != nil {
 		panic(err)
 	}
 
-	logLevel := newApp.GetConfig().GetLogLevel() // TODO not working
-
-	var slogLevel slog.Level
-
-	if logLevel != "" {
-		switch logLevel {
-		case "any":
-		case "debug":
-			slogLevel = slog.LevelDebug
-		case "info":
-			slogLevel = slog.LevelInfo
-		case "warn":
-			slogLevel = slog.LevelWarn
-		case "error":
-			slogLevel = slog.LevelError
-		default:
-			panic(fmt.Errorf("unknown log level: %s", logLevel))
-		}
-	}
-
-	var err error
-
-	customHandler, err = logging_service.NewCustomHandler(&newApp, &slogLevel)
-
-	if err == nil {
-		slog.SetDefault(slog.New(customHandler))
-	} else {
-		panic(err)
-	}
+	initLogging()
 }
 
 func main() {
@@ -97,4 +70,35 @@ func main() {
 	}
 
 	slog.Warn("Exit")
+}
+
+func initLogging() {
+	logLevels := strings.Split(newApp.GetConfig().GetLogLevels(), ",")
+
+	var slogLevels []slog.Level
+
+	if slices.Index(logLevels, "any") == -1 {
+		for _, logLevel := range logLevels {
+			switch logLevel {
+			case "debug":
+				slogLevels = append(slogLevels, slog.LevelDebug)
+			case "info":
+				slogLevels = append(slogLevels, slog.LevelInfo)
+			case "warn":
+				slogLevels = append(slogLevels, slog.LevelWarn)
+			case "error":
+				slogLevels = append(slogLevels, slog.LevelError)
+			default:
+				panic(fmt.Errorf("unknown log level: %s", logLevel))
+			}
+		}
+	}
+
+	customHandler, err := logging_service.NewCustomHandler(&newApp, logging_service.NewLevelPolicy(slogLevels))
+
+	if err == nil {
+		slog.SetDefault(slog.New(customHandler))
+	} else {
+		panic(err)
+	}
 }

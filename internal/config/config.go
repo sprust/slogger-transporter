@@ -41,8 +41,8 @@ func (c *Config) GetRmqConfig() *RmqParams {
 	return c.rmq
 }
 
-func (c *Config) GetLogLevel() string {
-	return os.Getenv("LOG_LEVEL")
+func (c *Config) GetLogLevels() string {
+	return os.Getenv("LOG_LEVELS")
 }
 
 func (c *Config) GetRpcPort() string {

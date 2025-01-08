@@ -9,16 +9,12 @@ import (
 )
 
 type CustomHandler struct {
-	level          *slog.Level
+	levelPolicy    *LevelPolicy
 	consoleHandler slog.Handler
 	fileHandler    slog.Handler
 }
 
-func NewCustomHandler(app *app.App, level *slog.Level) (*CustomHandler, error) {
-	handler := &CustomHandler{
-		level: level,
-	}
-
+func NewCustomHandler(app *app.App, levelPolicy *LevelPolicy) (*CustomHandler, error) {
 	fileHandler, err := handlers.NewFileHandler()
 
 	if err != nil {
@@ -27,8 +23,11 @@ func NewCustomHandler(app *app.App, level *slog.Level) (*CustomHandler, error) {
 
 	app.AddLastCloseListener(fileHandler)
 
-	handler.fileHandler = fileHandler
-	handler.consoleHandler = handlers.NewConsoleHandler()
+	handler := &CustomHandler{
+		levelPolicy:    levelPolicy,
+		fileHandler:    fileHandler,
+		consoleHandler: handlers.NewConsoleHandler(),
+	}
 
 	return handler, nil
 }
@@ -45,32 +44,13 @@ func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func (h *CustomHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.fileHandler.Enabled(ctx, level) || h.consoleHandler.Enabled(ctx, level)
+	return h.levelPolicy.Allowed(level)
 }
 
 func (h *CustomHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &CustomHandler{
-		fileHandler:    h.fileHandler.WithAttrs(attrs),
-		consoleHandler: h.consoleHandler.WithAttrs(attrs),
-	}
+	return h
 }
 
 func (h *CustomHandler) WithGroup(name string) slog.Handler {
-	return &CustomHandler{
-		fileHandler:    h.fileHandler.WithGroup(name),
-		consoleHandler: h.consoleHandler.WithGroup(name),
-	}
-}
-
-func (h *CustomHandler) initConsoleHandler() {
-}
-
-func (h *CustomHandler) makeHandlerOptions() *slog.HandlerOptions {
-	if h.level == nil {
-		return nil
-	}
-
-	return &slog.HandlerOptions{
-		Level: *h.level,
-	}
+	return h
 }
