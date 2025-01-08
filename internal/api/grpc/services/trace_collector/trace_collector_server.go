@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"time"
 )
 

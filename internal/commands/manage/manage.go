@@ -10,7 +10,7 @@ import (
 	"slogger-transporter/internal/api/grpc/services/grpc_manager"
 	"slogger-transporter/internal/api/grpc/services/ping_pong"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"strings"
 	"time"
 )

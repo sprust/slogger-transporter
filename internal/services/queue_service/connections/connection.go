@@ -4,7 +4,7 @@ import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 )
 

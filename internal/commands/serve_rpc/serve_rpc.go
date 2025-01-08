@@ -4,7 +4,7 @@ import (
 	"context"
 	"slogger-transporter/internal/api/rpc"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 )
 
 type ServeRpcCommand struct {

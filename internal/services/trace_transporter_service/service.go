@@ -10,7 +10,7 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"strconv"
 	"time"
 )

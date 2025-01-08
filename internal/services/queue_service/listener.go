@@ -5,10 +5,10 @@ import (
 	"errors"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/atomic"
-	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
+	atomic2 "slogger-transporter/pkg/foundation/atomic"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 	"time"
 )
@@ -26,9 +26,9 @@ type Listener struct {
 	connections      map[int]*connections.Connection
 	publisher        *Publisher
 	connectionsMutex sync.Mutex
-	closing          atomic.Boolean
-	closed           atomic.Boolean
-	handlingCount    atomic.Counter
+	closing          atomic2.Boolean
+	closed           atomic2.Boolean
+	handlingCount    atomic2.Counter
 }
 
 func NewListener(queue objects.QueueInterface) (*Listener, error) {

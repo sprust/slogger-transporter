@@ -5,7 +5,7 @@ import (
 	"errors"
 	"slogger-transporter/internal/commands/queue_listen"
 	"slogger-transporter/internal/commands/serve_grpc"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 )
 

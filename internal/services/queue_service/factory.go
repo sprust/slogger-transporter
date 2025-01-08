@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"slogger-transporter/internal/services/queue_service/queues/queue_trace_transporter"
+	"slogger-transporter/pkg/foundation/errs"
 )
 
 type Factory struct {

@@ -3,8 +3,8 @@ package queue_listen
 import (
 	"context"
 	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service"
+	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 )
 

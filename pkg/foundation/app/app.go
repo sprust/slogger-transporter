@@ -8,24 +8,23 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"slices"
-	"slogger-transporter/internal/commands"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/errs"
-	"slogger-transporter/internal/services/logging_service"
-	"strings"
+	"slogger-transporter/pkg/foundation/commands"
+	"slogger-transporter/pkg/foundation/errs"
+	"slogger-transporter/pkg/foundation/logging"
 	"syscall"
 )
 
 type App struct {
+	commands           map[string]commands.CommandInterface
+	logLevels          []slog.Level
 	closeListeners     []io.Closer
 	lastCloseListeners []io.Closer
-	commands           map[string]commands.CommandInterface
 }
 
-func NewApp(commands map[string]commands.CommandInterface) App {
+func NewApp(commands map[string]commands.CommandInterface, logLevels []slog.Level) App {
 	app := App{
-		commands: commands,
+		commands:  commands,
+		logLevels: logLevels,
 	}
 
 	return app
@@ -35,7 +34,7 @@ func (a *App) Start(commandName string, args []string) {
 	if commandName == "" {
 		fmt.Println("Commands:")
 
-		for key, command := range commands.GetCommands() {
+		for key, command := range a.commands {
 			fmt.Printf(" %s %s - %s\n", key, command.Parameters(), command.Title())
 		}
 
@@ -100,28 +99,7 @@ func (a *App) AddLastCloseListener(listener io.Closer) {
 }
 
 func (a *App) initLogging() {
-	logLevels := strings.Split(config.GetConfig().GetLogLevels(), ",")
-
-	var slogLevels []slog.Level
-
-	if slices.Index(logLevels, "any") == -1 {
-		for _, logLevel := range logLevels {
-			switch logLevel {
-			case "debug":
-				slogLevels = append(slogLevels, slog.LevelDebug)
-			case "info":
-				slogLevels = append(slogLevels, slog.LevelInfo)
-			case "warn":
-				slogLevels = append(slogLevels, slog.LevelWarn)
-			case "error":
-				slogLevels = append(slogLevels, slog.LevelError)
-			default:
-				panic(fmt.Errorf("unknown log level: %s", logLevel))
-			}
-		}
-	}
-
-	customHandler, err := logging_service.NewCustomHandler(logging_service.NewLevelPolicy(slogLevels))
+	customHandler, err := logging.NewCustomHandler(logging.NewLevelPolicy(a.logLevels))
 
 	if err == nil {
 		slog.SetDefault(slog.New(customHandler))

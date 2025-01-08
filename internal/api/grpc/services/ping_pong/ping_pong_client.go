@@ -5,7 +5,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/ping_pong_gen"
-	"slogger-transporter/internal/services/errs"
+	"slogger-transporter/pkg/foundation/errs"
 )
 
 type Client struct {

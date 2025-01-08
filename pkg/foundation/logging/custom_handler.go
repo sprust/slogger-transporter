@@ -1,10 +1,10 @@
-package logging_service
+package logging
 
 import (
 	"context"
 	"log/slog"
-	"slogger-transporter/internal/services/errs"
-	"slogger-transporter/internal/services/logging_service/handlers"
+	"slogger-transporter/pkg/foundation/errs"
+	"slogger-transporter/pkg/foundation/logging/handlers"
 )
 
 type CustomHandler struct {
