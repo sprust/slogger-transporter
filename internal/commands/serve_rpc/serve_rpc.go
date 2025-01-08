@@ -3,6 +3,7 @@ package serve_rpc
 import (
 	"slogger-transporter/internal/api/rpc"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 )
 
@@ -19,7 +20,7 @@ func (c *ServeRpcCommand) Parameters() string {
 }
 
 func (c *ServeRpcCommand) Handle(app *app.App, arguments []string) error {
-	rpcPort := app.GetConfig().GetRpcPort()
+	rpcPort := config.GetConfig().GetRpcPort()
 
 	c.server = rpc.NewServer(app, rpcPort)
 

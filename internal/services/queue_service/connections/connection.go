@@ -4,6 +4,7 @@ import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"sync"
 )
@@ -116,7 +117,7 @@ func (c *Connection) Init() error {
 }
 
 func (c *Connection) connect() (*amqp.Connection, *amqp.Channel, error) {
-	rmqParams := c.app.GetConfig().GetRmqConfig()
+	rmqParams := config.GetConfig().GetRmqConfig()
 
 	url := fmt.Sprintf(
 		"amqp://%s:%s@%s:%s/",

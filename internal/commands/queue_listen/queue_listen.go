@@ -2,6 +2,7 @@ package queue_listen
 
 import (
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service"
 	"sync"
@@ -75,9 +76,7 @@ func (c *QueueListenCommand) Close() error {
 	return nil
 }
 func (c *QueueListenCommand) getQueueNames(app *app.App) []string {
-	config := app.GetConfig()
-
 	return []string{
-		config.GetTraceTransporterQueueName(),
+		config.GetConfig().GetTraceTransporterQueueName(),
 	}
 }

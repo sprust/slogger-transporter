@@ -7,6 +7,7 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
 	"slogger-transporter/internal/api/grpc/services/grpc_manager"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ func (c *Command) Parameters() string {
 func (c *Command) Handle(app *app.App, arguments []string) error {
 	comm, err := c.getCommandByArguments(arguments)
 
-	grpcPort := app.GetConfig().GetGrpcPort()
+	grpcPort := config.GetConfig().GetGrpcPort()
 
 	c.client, err = grpc_manager.NewClient(":" + grpcPort)
 

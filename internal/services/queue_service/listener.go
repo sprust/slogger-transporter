@@ -44,7 +44,7 @@ func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) 
 		app:           app,
 		queue:         queue,
 		queueSettings: settings,
-		rmqParams:     app.GetConfig().GetRmqConfig(),
+		rmqParams:     config.GetConfig().GetRmqConfig(),
 		events:        NewEvents(app, settings.QueueName),
 		connections:   make(map[int]*connections.Connection),
 		publisher:     NewPublisher(app),

@@ -19,6 +19,17 @@ type RmqParams struct {
 	RmqPort string
 }
 
+var instance *Config
+var once sync.Once
+
+func GetConfig() *Config {
+	once.Do(func() {
+		instance = &Config{}
+	})
+
+	return instance
+}
+
 func (c *Config) GetRmqConfig() *RmqParams {
 	if c.rmq != nil {
 		return c.rmq

@@ -4,21 +4,18 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 )
 
 type App struct {
 	ctx                context.Context
-	config             *config.Config
 	closeListeners     []io.Closer
 	lastCloseListeners []io.Closer
 }
 
 func NewApp(ctx context.Context) App {
 	app := App{
-		ctx:    ctx,
-		config: &config.Config{},
+		ctx: ctx,
 	}
 
 	return app
@@ -26,10 +23,6 @@ func NewApp(ctx context.Context) App {
 
 func (a *App) GetContext() context.Context {
 	return a.ctx
-}
-
-func (a *App) GetConfig() *config.Config {
-	return a.config
 }
 
 func (a *App) Close() error {

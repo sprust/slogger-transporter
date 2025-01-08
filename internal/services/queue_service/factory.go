@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"slogger-transporter/internal/services/queue_service/queues/queue_trace_transporter"
@@ -22,7 +23,7 @@ func NewFactory(app *app.App) (*Factory, error) {
 
 	return &Factory{
 		items: map[string]objects.QueueInterface{
-			app.GetConfig().GetTraceTransporterQueueName(): transporter,
+			config.GetConfig().GetTraceTransporterQueueName(): transporter,
 		},
 	}, nil
 }
@@ -36,7 +37,7 @@ func (f *Factory) GetQueue(name string) (objects.QueueInterface, error) {
 }
 
 func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTransporter, error) {
-	queueWorkersNum, err := app.GetConfig().GetTraceTransporterQueueWorkersNum()
+	queueWorkersNum, err := config.GetConfig().GetTraceTransporterQueueWorkersNum()
 
 	if err != nil {
 		return nil, errs.Err(err)
@@ -44,7 +45,7 @@ func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTranspo
 
 	transporter, err := queue_trace_transporter.NewQueueTraceTransporter(
 		app,
-		app.GetConfig().GetTraceTransporterQueueName(),
+		config.GetConfig().GetTraceTransporterQueueName(),
 		queueWorkersNum,
 	)
 

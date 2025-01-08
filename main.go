@@ -10,6 +10,7 @@ import (
 	"slices"
 	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/logging_service"
 	"strings"
 	"syscall"
@@ -73,7 +74,7 @@ func main() {
 }
 
 func initLogging() {
-	logLevels := strings.Split(newApp.GetConfig().GetLogLevels(), ",")
+	logLevels := strings.Split(config.GetConfig().GetLogLevels(), ",")
 
 	var slogLevels []slog.Level
 

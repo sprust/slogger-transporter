@@ -10,6 +10,7 @@ import (
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/app"
+	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"strconv"
 	"time"
@@ -183,7 +184,7 @@ func (s *Service) Close() error {
 // coroutines leak in google.golang.org/grpc@v1.69.2/internal/grpcsync/callback_serializer.go:88
 // at sharing with server of one application
 func (s *Service) getClient() (*trace_collector.Client, error) {
-	client, err := trace_collector.NewClient(s.app.GetConfig().GetSloggerGrpcUrl())
+	client, err := trace_collector.NewClient(config.GetConfig().GetSloggerGrpcUrl())
 
 	if err != nil {
 		return nil, errs.Err(err)
