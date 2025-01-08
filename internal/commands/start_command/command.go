@@ -1,17 +1,17 @@
-package start
+package start_command
 
 import (
 	"context"
 	"errors"
-	"slogger-transporter/internal/commands/queue_listen"
-	"slogger-transporter/internal/commands/serve_grpc"
+	"slogger-transporter/internal/commands/queue_listen_command"
+	"slogger-transporter/internal/commands/serve_grpc_command"
 	"slogger-transporter/pkg/foundation/errs"
 	"sync"
 )
 
 type Command struct {
-	serveGrpcCommand   *serve_grpc.ServeGrpcCommand
-	queueListenCommand *queue_listen.QueueListenCommand
+	serveGrpcCommand   *serve_grpc_command.Command
+	queueListenCommand *queue_listen_command.Command
 }
 
 func (c *Command) Title() string {
@@ -34,7 +34,7 @@ func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	go func() {
 		defer wg.Done()
 
-		c.serveGrpcCommand = &serve_grpc.ServeGrpcCommand{}
+		c.serveGrpcCommand = &serve_grpc_command.Command{}
 
 		err := c.serveGrpcCommand.Handle(ctx, []string{})
 
@@ -48,7 +48,7 @@ func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	go func() {
 		defer wg.Done()
 
-		c.queueListenCommand = &queue_listen.QueueListenCommand{}
+		c.queueListenCommand = &queue_listen_command.Command{}
 
 		err := c.queueListenCommand.Handle(ctx, []string{})
 

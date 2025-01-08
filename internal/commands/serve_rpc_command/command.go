@@ -1,4 +1,4 @@
-package serve_rpc
+package serve_rpc_command
 
 import (
 	"context"
@@ -7,19 +7,19 @@ import (
 	"slogger-transporter/pkg/foundation/errs"
 )
 
-type ServeRpcCommand struct {
+type Command struct {
 	server *rpc.Server
 }
 
-func (c *ServeRpcCommand) Title() string {
+func (c *Command) Title() string {
 	return "Serve rpc"
 }
 
-func (c *ServeRpcCommand) Parameters() string {
+func (c *Command) Parameters() string {
 	return "{no parameters}"
 }
 
-func (c *ServeRpcCommand) Handle(ctx context.Context, arguments []string) error {
+func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	rpcPort := config.GetConfig().GetRpcPort()
 
 	c.server = rpc.NewServer(rpcPort)
@@ -29,7 +29,7 @@ func (c *ServeRpcCommand) Handle(ctx context.Context, arguments []string) error 
 	return errs.Err(err)
 }
 
-func (c *ServeRpcCommand) Close() error {
+func (c *Command) Close() error {
 	if c.server != nil {
 		return errs.Err(c.server.Close())
 	}

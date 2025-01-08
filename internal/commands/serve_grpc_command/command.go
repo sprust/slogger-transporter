@@ -1,4 +1,4 @@
-package serve_grpc
+package serve_grpc_command
 
 import (
 	"context"
@@ -7,19 +7,19 @@ import (
 	"slogger-transporter/pkg/foundation/errs"
 )
 
-type ServeGrpcCommand struct {
+type Command struct {
 	server *grpc.Server
 }
 
-func (c *ServeGrpcCommand) Title() string {
+func (c *Command) Title() string {
 	return "Serve grpc"
 }
 
-func (c *ServeGrpcCommand) Parameters() string {
+func (c *Command) Parameters() string {
 	return "{no parameters}"
 }
 
-func (c *ServeGrpcCommand) Handle(ctx context.Context, arguments []string) error {
+func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	cfg := config.GetConfig()
 
 	grpcPort := cfg.GetGrpcPort()
@@ -32,7 +32,7 @@ func (c *ServeGrpcCommand) Handle(ctx context.Context, arguments []string) error
 	return errs.Err(err)
 }
 
-func (c *ServeGrpcCommand) Close() error {
+func (c *Command) Close() error {
 	if c.server != nil {
 		return errs.Err(c.server.Close())
 	}

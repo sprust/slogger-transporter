@@ -1,4 +1,4 @@
-package queue_listen
+package queue_listen_command
 
 import (
 	"context"
@@ -8,19 +8,19 @@ import (
 	"sync"
 )
 
-type QueueListenCommand struct {
+type Command struct {
 	listeners []*queue_service.Listener
 }
 
-func (c *QueueListenCommand) Title() string {
+func (c *Command) Title() string {
 	return "Start jobs listening"
 }
 
-func (c *QueueListenCommand) Parameters() string {
+func (c *Command) Parameters() string {
 	return "{no parameters}"
 }
 
-func (c *QueueListenCommand) Handle(ctx context.Context, arguments []string) error {
+func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	queueFactory, err := queue_service.NewFactory()
 
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *QueueListenCommand) Handle(ctx context.Context, arguments []string) err
 	return nil
 }
 
-func (c *QueueListenCommand) Close() error {
+func (c *Command) Close() error {
 	for _, listener := range c.listeners {
 		err := listener.Close()
 
@@ -75,7 +75,7 @@ func (c *QueueListenCommand) Close() error {
 
 	return nil
 }
-func (c *QueueListenCommand) getQueueNames() []string {
+func (c *Command) getQueueNames() []string {
 	return []string{
 		config.GetConfig().GetTraceTransporterQueueName(),
 	}

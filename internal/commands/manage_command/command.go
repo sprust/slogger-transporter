@@ -1,4 +1,4 @@
-package manage
+package manage_command
 
 import (
 	"context"
