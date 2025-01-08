@@ -38,19 +38,28 @@ func NewListener(queue objects.QueueInterface) (*Listener, error) {
 		return nil, errs.Err(err)
 	}
 
-	return &Listener{
+	listener := &Listener{
 		queue:         queue,
 		queueSettings: settings,
 		rmqParams:     config.GetConfig().GetRmqConfig(),
 		events:        NewEvents(settings.QueueName),
 		connections:   make(map[int]*connections.Connection),
 		publisher:     NewPublisher(),
-	}, nil
+	}
+
+	listener.closed.Set(true)
+	listener.closing.Set(false)
+
+	return listener, nil
 }
 
 func (l *Listener) Listen() error {
 	if l.closing.Get() {
 		return errs.Err(errors.New("listener is closing"))
+	}
+
+	if !l.closed.Get() {
+		return errs.Err(errors.New("listener is not closed"))
 	}
 
 	l.closed.Set(false)
@@ -125,7 +134,7 @@ func (l *Listener) startWorker(workerId int) {
 	isReconnect := false
 
 	for {
-		if l.closing.Get() {
+		if l.closing.Get() || l.closed.Get() {
 			break
 		}
 
