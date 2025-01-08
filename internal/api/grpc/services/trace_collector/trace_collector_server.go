@@ -7,18 +7,16 @@ import (
 	"google.golang.org/grpc/metadata"
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/errs"
 	"time"
 )
 
 type Server struct {
-	app    *app.App
 	client gen.TraceCollectorClient
 	gen.UnimplementedTraceCollectorServer
 }
 
-func NewServer(app *app.App, sloggerGrpcUrl string) (*Server, error) {
+func NewServer(sloggerGrpcUrl string) (*Server, error) {
 	options := grpc.WithTransportCredentials(insecure.NewCredentials())
 
 	client, err := grpc.NewClient(sloggerGrpcUrl, options)
@@ -27,7 +25,7 @@ func NewServer(app *app.App, sloggerGrpcUrl string) (*Server, error) {
 		return nil, errs.Err(err)
 	}
 
-	return &Server{app: app, client: gen.NewTraceCollectorClient(client)}, nil
+	return &Server{client: gen.NewTraceCollectorClient(client)}, nil
 }
 
 func (c *Server) Create(ctx context.Context, in *gen.TraceCreateRequest) (*gen.TraceCollectorResponse, error) {

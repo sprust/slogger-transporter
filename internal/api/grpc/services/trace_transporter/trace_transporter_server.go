@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	gen "slogger-transporter/internal/api/grpc/gen/services/trace_transporter_gen"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service"
@@ -17,7 +16,6 @@ import (
 const waitingWorkersEndingInSeconds = 10
 
 type Server struct {
-	app *app.App
 	gen.UnimplementedTraceTransporterServer
 	publisher            *queue_service.Publisher
 	closing              bool
@@ -25,10 +23,9 @@ type Server struct {
 	requestHandlingMutex sync.Mutex
 }
 
-func NewServer(app *app.App) *Server {
+func NewServer() *Server {
 	return &Server{
-		app:       app,
-		publisher: queue_service.NewPublisher(app),
+		publisher: queue_service.NewPublisher(),
 	}
 }
 

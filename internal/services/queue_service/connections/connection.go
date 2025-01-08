@@ -3,27 +3,23 @@ package connections
 import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"sync"
 )
 
 type Connection struct {
-	app        *app.App
 	connection *amqp.Connection
 	channel    *amqp.Channel
 	mutex      sync.Mutex
 }
 
-func NewConnection(app *app.App) *Connection {
-	return &Connection{
-		app: app,
-	}
+func NewConnection() *Connection {
+	return &Connection{}
 }
 
 func (c *Connection) DeclareQueue(queueName string) error {
-	err := c.Init()
+	err := c.init()
 
 	if err != nil {
 		return errs.Err(err)
@@ -42,7 +38,7 @@ func (c *Connection) DeclareQueue(queueName string) error {
 }
 
 func (c *Connection) Consume(queueName string) (<-chan amqp.Delivery, error) {
-	err := c.Init()
+	err := c.init()
 
 	if err != nil {
 		return nil, errs.Err(err)
@@ -66,7 +62,7 @@ func (c *Connection) Consume(queueName string) (<-chan amqp.Delivery, error) {
 }
 
 func (c *Connection) Publish(queueName string, payload []byte) error {
-	err := c.Init()
+	err := c.init()
 
 	if err != nil {
 		return errs.Err(err)
@@ -96,7 +92,7 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-func (c *Connection) Init() error {
+func (c *Connection) init() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

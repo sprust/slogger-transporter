@@ -1,8 +1,8 @@
 package serve_grpc
 
 import (
+	"context"
 	"slogger-transporter/internal/api/grpc"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 )
@@ -19,13 +19,13 @@ func (c *ServeGrpcCommand) Parameters() string {
 	return "{no parameters}"
 }
 
-func (c *ServeGrpcCommand) Handle(app *app.App, arguments []string) error {
+func (c *ServeGrpcCommand) Handle(ctx context.Context, arguments []string) error {
 	cfg := config.GetConfig()
 
 	grpcPort := cfg.GetGrpcPort()
 	sloggerGrpcUrl := cfg.GetSloggerGrpcUrl()
 
-	c.server = grpc.NewServer(app, grpcPort, sloggerGrpcUrl)
+	c.server = grpc.NewServer(grpcPort, sloggerGrpcUrl)
 
 	err := c.server.Run()
 

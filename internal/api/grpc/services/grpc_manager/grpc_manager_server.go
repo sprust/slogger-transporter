@@ -5,28 +5,25 @@ import (
 	"log/slog"
 	"runtime"
 	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
-	"slogger-transporter/internal/app"
-	"slogger-transporter/internal/services/errs"
+	"syscall"
 )
 
 type Server struct {
-	app *app.App
 	gen.UnimplementedGrpcManagerServer
 }
 
-func NewServer(app *app.App) *Server {
-	return &Server{app: app}
+func NewServer() *Server {
+	return &Server{}
 }
 
 func (s *Server) Stop(ctx context.Context, in *gen.GrpcManagerStopRequest) (*gen.GrpcManagerStopResponse, error) {
-	err := s.app.Close()
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 
 	if err != nil {
-		return nil, errs.Err(err)
+		return nil, err
 	}
 
-	// this is never run
-	return &gen.GrpcManagerStopResponse{Success: true, Message: "Grpc server stopped"}, nil
+	return &gen.GrpcManagerStopResponse{Success: true, Message: "stop signal received..."}, nil
 }
 
 func (s *Server) Stat(ctx context.Context, in *gen.GrpcManagerStatRequest) (*gen.GrpcManagerStatResponse, error) {

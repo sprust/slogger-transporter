@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
+	"slogger-transporter/internal/services/atomic"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
@@ -19,7 +19,6 @@ const (
 )
 
 type Listener struct {
-	app                *app.App
 	queue              objects.QueueInterface
 	queueSettings      *objects.QueueSettings
 	events             *Events
@@ -27,13 +26,13 @@ type Listener struct {
 	connections        map[int]*connections.Connection
 	publisher          *Publisher
 	connectionsMutex   sync.Mutex
-	closing            bool
-	closed             bool
+	closing            atomic.Boolean
+	closed             atomic.Boolean
 	handlingCount      int
 	handlingCountMutex sync.Mutex
 }
 
-func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) {
+func NewListener(queue objects.QueueInterface) (*Listener, error) {
 	settings, err := queue.GetSettings()
 
 	if err != nil {
@@ -41,22 +40,21 @@ func NewListener(app *app.App, queue objects.QueueInterface) (*Listener, error) 
 	}
 
 	return &Listener{
-		app:           app,
 		queue:         queue,
 		queueSettings: settings,
 		rmqParams:     config.GetConfig().GetRmqConfig(),
-		events:        NewEvents(app, settings.QueueName),
+		events:        NewEvents(settings.QueueName),
 		connections:   make(map[int]*connections.Connection),
-		publisher:     NewPublisher(app),
+		publisher:     NewPublisher(),
 	}, nil
 }
 
 func (l *Listener) Listen() error {
-	if l.closing {
+	if l.closing.Get() {
 		return errs.Err(errors.New("listener is closing"))
 	}
 
-	l.closed = false
+	l.closed.Set(false)
 
 	err := l.declareQueue()
 
@@ -78,7 +76,7 @@ func (l *Listener) Listen() error {
 
 	waitGroup.Wait()
 
-	for !l.closed {
+	for !l.closed.Get() {
 		// wait for closing
 	}
 
@@ -88,7 +86,7 @@ func (l *Listener) Listen() error {
 func (l *Listener) Close() error {
 	l.events.Closing()
 
-	l.closing = true
+	l.closing.Set(true)
 
 	for workerId, connection := range l.connections {
 		err := connection.Close()
@@ -118,8 +116,8 @@ func (l *Listener) Close() error {
 
 	l.events.Closed()
 
-	l.closing = false
-	l.closed = true
+	l.closing.Set(false)
+	l.closed.Set(true)
 
 	return nil
 }
@@ -128,7 +126,7 @@ func (l *Listener) startWorker(workerId int) {
 	isReconnect := false
 
 	for {
-		if l.closing {
+		if l.closing.Get() {
 			break
 		}
 
@@ -140,7 +138,7 @@ func (l *Listener) startWorker(workerId int) {
 			isReconnect = true
 		}
 
-		connection := connections.NewConnection(l.app)
+		connection := connections.NewConnection()
 
 		l.events.WorkerConnected(workerId)
 
@@ -165,7 +163,7 @@ func (l *Listener) startWorker(workerId int) {
 }
 
 func (l *Listener) declareQueue() error {
-	connection := connections.NewConnection(l.app)
+	connection := connections.NewConnection()
 
 	err := connection.DeclareQueue(l.queueSettings.QueueName)
 

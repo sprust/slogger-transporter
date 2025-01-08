@@ -1,10 +1,10 @@
 package commands
 
-import "slogger-transporter/internal/app"
+import "context"
 
 type CommandInterface interface {
 	Title() string
 	Parameters() string
-	Handle(app *app.App, arguments []string) error
+	Handle(ctx context.Context, arguments []string) error
 	Close() error
 }

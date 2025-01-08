@@ -3,7 +3,6 @@ package queue_trace_transporter
 import (
 	"encoding/json"
 	"errors"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/connections"
 	"slogger-transporter/internal/services/queue_service/objects"
@@ -13,7 +12,6 @@ import (
 )
 
 type QueueTraceTransporter struct {
-	app             *app.App
 	queueName       string
 	queueWorkersNum int
 	transporter     *trace_transporter_service.Service
@@ -21,7 +19,7 @@ type QueueTraceTransporter struct {
 	mutex           sync.Mutex
 }
 
-func NewQueueTraceTransporter(app *app.App, queueName string, queueWorkersNum int) (*QueueTraceTransporter, error) {
+func NewQueueTraceTransporter(queueName string, queueWorkersNum int) (*QueueTraceTransporter, error) {
 	if queueName == "" {
 		return nil, errors.New("invalid queue name")
 	}
@@ -30,14 +28,13 @@ func NewQueueTraceTransporter(app *app.App, queueName string, queueWorkersNum in
 		return nil, errors.New("invalid queue workers num")
 	}
 
-	transporter, err := trace_transporter_service.NewService(app)
+	transporter, err := trace_transporter_service.NewService()
 
 	if err != nil {
 		return nil, errs.Err(err)
 	}
 
 	return &QueueTraceTransporter{
-		app:             app,
 		queueName:       queueName,
 		queueWorkersNum: queueWorkersNum,
 		transporter:     transporter,
@@ -66,7 +63,7 @@ func (q *QueueTraceTransporter) GetSettings() (*objects.QueueSettings, error) {
 
 // Publish TODO: maybe validate via unmarshal
 func (q *QueueTraceTransporter) Publish(payload []byte) error {
-	connection := connections.NewConnection(q.app)
+	connection := connections.NewConnection()
 
 	settings, err := q.GetSettings()
 

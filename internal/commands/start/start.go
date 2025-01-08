@@ -1,8 +1,8 @@
 package start
 
 import (
+	"context"
 	"errors"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/commands/queue_listen"
 	"slogger-transporter/internal/commands/serve_grpc"
 	"slogger-transporter/internal/services/errs"
@@ -22,7 +22,7 @@ func (c *Command) Parameters() string {
 	return "{no parameters}"
 }
 
-func (c *Command) Handle(app *app.App, arguments []string) error {
+func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	if len(arguments) != 0 {
 		return errs.Err(errors.New("this command does not accept any parameters"))
 	}
@@ -36,7 +36,7 @@ func (c *Command) Handle(app *app.App, arguments []string) error {
 
 		c.serveGrpcCommand = &serve_grpc.ServeGrpcCommand{}
 
-		err := c.serveGrpcCommand.Handle(app, []string{})
+		err := c.serveGrpcCommand.Handle(ctx, []string{})
 
 		if err != nil {
 			panic(errs.Err(err))
@@ -50,7 +50,7 @@ func (c *Command) Handle(app *app.App, arguments []string) error {
 
 		c.queueListenCommand = &queue_listen.QueueListenCommand{}
 
-		err := c.queueListenCommand.Handle(app, []string{})
+		err := c.queueListenCommand.Handle(ctx, []string{})
 
 		if err != nil {
 			panic(errs.Err(err))

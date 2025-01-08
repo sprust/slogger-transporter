@@ -13,21 +13,18 @@ import (
 	"slogger-transporter/internal/api/grpc/services/ping_pong"
 	"slogger-transporter/internal/api/grpc/services/trace_collector"
 	"slogger-transporter/internal/api/grpc/services/trace_transporter"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/errs"
 )
 
 type Server struct {
-	app            *app.App
 	rpcPort        string
 	sloggerGrpcUrl string
 	grpcServer     *grpc.Server
 	servers        []io.Closer
 }
 
-func NewServer(app *app.App, rpcPort string, sloggerGrpcUrl string) *Server {
+func NewServer(rpcPort string, sloggerGrpcUrl string) *Server {
 	server := &Server{
-		app:            app,
 		rpcPort:        rpcPort,
 		sloggerGrpcUrl: sloggerGrpcUrl,
 	}
@@ -112,7 +109,7 @@ func (s *Server) registerPingPongServer(grpcServer *grpc.Server) error {
 }
 
 func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
-	server, err := trace_collector.NewServer(s.app, s.sloggerGrpcUrl)
+	server, err := trace_collector.NewServer(s.sloggerGrpcUrl)
 
 	if err != nil {
 		slog.Error("Error creating collector: ", err.Error())
@@ -128,7 +125,7 @@ func (s *Server) registerTraceCollectorServer(grpcServer *grpc.Server) error {
 }
 
 func (s *Server) registerTraceTransporterServer(grpcServer *grpc.Server) error {
-	server := trace_transporter.NewServer(s.app)
+	server := trace_transporter.NewServer()
 
 	trace_transporter_gen.RegisterTraceTransporterServer(grpcServer, server)
 
@@ -138,7 +135,7 @@ func (s *Server) registerTraceTransporterServer(grpcServer *grpc.Server) error {
 }
 
 func (s *Server) registerGrpcManagerServer(grpcServer *grpc.Server) error {
-	server := grpc_manager.NewServer(s.app)
+	server := grpc_manager.NewServer()
 
 	grpc_manager_gen.RegisterGrpcManagerServer(grpcServer, server)
 

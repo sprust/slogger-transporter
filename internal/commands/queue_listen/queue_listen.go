@@ -1,7 +1,7 @@
 package queue_listen
 
 import (
-	"slogger-transporter/internal/app"
+	"context"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service"
@@ -20,21 +20,21 @@ func (c *QueueListenCommand) Parameters() string {
 	return "{no parameters}"
 }
 
-func (c *QueueListenCommand) Handle(app *app.App, arguments []string) error {
-	queueFactory, err := queue_service.NewFactory(app)
+func (c *QueueListenCommand) Handle(ctx context.Context, arguments []string) error {
+	queueFactory, err := queue_service.NewFactory()
 
 	if err != nil {
 		return errs.Err(err)
 	}
 
-	for _, queueName := range c.getQueueNames(app) {
+	for _, queueName := range c.getQueueNames() {
 		queue, err := queueFactory.GetQueue(queueName)
 
 		if err != nil {
 			return errs.Err(err)
 		}
 
-		listener, err := queue_service.NewListener(app, queue)
+		listener, err := queue_service.NewListener(queue)
 
 		if err != nil {
 			return errs.Err(err)
@@ -75,7 +75,7 @@ func (c *QueueListenCommand) Close() error {
 
 	return nil
 }
-func (c *QueueListenCommand) getQueueNames(app *app.App) []string {
+func (c *QueueListenCommand) getQueueNames() []string {
 	return []string{
 		config.GetConfig().GetTraceTransporterQueueName(),
 	}

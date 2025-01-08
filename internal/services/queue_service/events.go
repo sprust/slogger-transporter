@@ -3,7 +3,6 @@ package queue_service
 import (
 	"fmt"
 	"log/slog"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/services/queue_service/objects"
 	"strconv"
 )
@@ -11,13 +10,11 @@ import (
 // TODO: refactor
 
 type Events struct {
-	app    *app.App
 	prefix string
 }
 
-func NewEvents(app *app.App, queueName string) *Events {
+func NewEvents(queueName string) *Events {
 	return &Events{
-		app:    app,
 		prefix: fmt.Sprintf("queue[%s]", queueName),
 	}
 }
@@ -47,7 +44,7 @@ func (e *Events) CloseConnectionFailed(workerId int, err error) {
 }
 
 func (e *Events) WorkerReconnecting(workerId int) {
-	slog.Error(e.makeLogText(workerId, "reconnect"))
+	slog.Error(e.makeLogText(workerId, "reconnecting"))
 }
 
 func (e *Events) WorkerConnectionFailed(workerId int, err error) {

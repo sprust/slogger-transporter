@@ -3,7 +3,6 @@ package queue_service
 import (
 	"errors"
 	"fmt"
-	"slogger-transporter/internal/app"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/internal/services/errs"
 	"slogger-transporter/internal/services/queue_service/objects"
@@ -14,8 +13,8 @@ type Factory struct {
 	items map[string]objects.QueueInterface
 }
 
-func NewFactory(app *app.App) (*Factory, error) {
-	transporter, err := createTransporter(app)
+func NewFactory() (*Factory, error) {
+	transporter, err := createTransporter()
 
 	if err != nil {
 		return nil, errs.Err(err)
@@ -36,7 +35,7 @@ func (f *Factory) GetQueue(name string) (objects.QueueInterface, error) {
 	return nil, errs.Err(errors.New(fmt.Sprintf("queue %s not found", name)))
 }
 
-func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTransporter, error) {
+func createTransporter() (*queue_trace_transporter.QueueTraceTransporter, error) {
 	queueWorkersNum, err := config.GetConfig().GetTraceTransporterQueueWorkersNum()
 
 	if err != nil {
@@ -44,7 +43,6 @@ func createTransporter(app *app.App) (*queue_trace_transporter.QueueTraceTranspo
 	}
 
 	transporter, err := queue_trace_transporter.NewQueueTraceTransporter(
-		app,
 		config.GetConfig().GetTraceTransporterQueueName(),
 		queueWorkersNum,
 	)

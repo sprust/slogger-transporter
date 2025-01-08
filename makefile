@@ -21,6 +21,9 @@ run:
 run-start:
 	go run main.go start
 
+run-stop:
+	go run main.go manage stop
+
 run-serve-grpc:
 	go run main.go serve:grpc
 
