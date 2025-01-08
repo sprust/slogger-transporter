@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package slogger_transporter;
+
+option go_package = "services/grpc_manager_gen";
+
+service GrpcManager {
+  rpc Stop(GrpcManagerStopRequest) returns (GrpcManagerStopResponse) {}
+  rpc Stat(GrpcManagerStatRequest) returns (GrpcManagerStatResponse) {}
+}
+
+// stop
+
+message GrpcManagerStopRequest {
+  string message = 1;
+}
+
+message GrpcManagerStopResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// stat
+
+message GrpcManagerStatRequest {
+}
+
+message GrpcManagerStatResponse {
+  uint64 NumGoroutine = 1;
+  float AllocMiB = 2;
+  float TotalAllocMiB = 3;
+  float SysMiB = 4;
+  uint64 NumGC = 5;
+}
