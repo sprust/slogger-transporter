@@ -44,6 +44,10 @@ func getLogLevels() []slog.Level {
 
 	if slices.Index(logLevels, "any") == -1 {
 		for _, logLevel := range logLevels {
+			if logLevel == "" {
+				continue
+			}
+
 			switch logLevel {
 			case "debug":
 				slogLevels = append(slogLevels, slog.LevelDebug)
