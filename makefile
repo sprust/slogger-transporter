@@ -16,22 +16,22 @@ restart:
 	make up
 
 run:
-	go run main.go ${c}
+	go run ./cmd/transporter/main.go ${c}
 
 run-start:
-	go run main.go start
+	go run ./cmd/transporter/main.go start
 
 run-stop:
-	go run main.go manage stop
+	go run ./cmd/transporter/main.go manage stop
 
 run-serve-grpc:
-	go run main.go serve:grpc
+	go run ./cmd/transporter/main.go serve:grpc
 
 run-queue-listen:
-	go run main.go queue:listen
+	go run ./cmd/transporter/main.go queue:listen
 
 build:
-	go build -o ./bin/ main.go
+	go build -o ./bin/ ./cmd/transporter/main.go
 
 test:
 	go test ./...
