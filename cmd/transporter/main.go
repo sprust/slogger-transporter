@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log/slog"
@@ -12,15 +13,29 @@ import (
 	"strings"
 )
 
+var args = os.Args
+
 func init() {
-	if err := godotenv.Load(); err != nil {
+	env := flag.String("env", "", "Specify the environment file to load")
+
+	flag.Parse()
+
+	var err error
+
+	if env == nil || *env == "" {
+		err = godotenv.Load()
+	} else {
+		err = godotenv.Load(*env)
+
+		args = filterArgs()
+	}
+
+	if err != nil {
 		panic(err)
 	}
 }
 
 func main() {
-	args := os.Args
-
 	var commandName string
 	var commandArgs []string
 
@@ -64,4 +79,16 @@ func getLogLevels() []slog.Level {
 	}
 
 	return slogLevels
+}
+
+func filterArgs() []string {
+	var result []string
+
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "--") {
+			result = append(result, arg)
+		}
+	}
+
+	return result
 }
