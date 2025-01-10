@@ -13,8 +13,8 @@ type CustomHandler struct {
 	fileHandler    *handlers.FileHandler
 }
 
-func NewCustomHandler(levelPolicy *LevelPolicy) (*CustomHandler, error) {
-	fileHandler, err := handlers.NewFileHandler()
+func NewCustomHandler(levelPolicy *LevelPolicy, logDitPath string) (*CustomHandler, error) {
+	fileHandler, err := handlers.NewFileHandler(logDitPath)
 
 	if err != nil {
 		return nil, err

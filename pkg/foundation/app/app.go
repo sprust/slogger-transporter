@@ -16,15 +16,15 @@ import (
 
 type App struct {
 	commands           map[string]commands.CommandInterface
-	logLevels          []slog.Level
+	config             *Config
 	closeListeners     []io.Closer
 	lastCloseListeners []io.Closer
 }
 
-func NewApp(commands map[string]commands.CommandInterface, logLevels []slog.Level) App {
+func NewApp(commands map[string]commands.CommandInterface, config *Config) App {
 	app := App{
-		commands:  commands,
-		logLevels: logLevels,
+		commands: commands,
+		config:   config,
 	}
 
 	return app
@@ -99,7 +99,7 @@ func (a *App) AddLastCloseListener(listener io.Closer) {
 }
 
 func (a *App) initLogging() {
-	customHandler, err := logging.NewCustomHandler(logging.NewLevelPolicy(a.logLevels))
+	customHandler, err := logging.NewCustomHandler(logging.NewLevelPolicy(a.config.logLevels), a.config.logDitPath)
 
 	if err == nil {
 		slog.SetDefault(slog.New(customHandler))

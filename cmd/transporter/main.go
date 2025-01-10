@@ -47,7 +47,13 @@ func main() {
 		commandArgs = args[2:]
 	}
 
-	newApp := app.NewApp(commands.GetCommands(), getLogLevels())
+	newApp := app.NewApp(
+		commands.GetCommands(),
+		app.NewConfig(
+			getLogLevels(),
+			os.Getenv("LOG_DIR"),
+		),
+	)
 
 	newApp.Start(commandName, commandArgs)
 }

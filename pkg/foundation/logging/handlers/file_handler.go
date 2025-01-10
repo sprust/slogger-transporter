@@ -6,20 +6,22 @@ import (
 	"os"
 	"path/filepath"
 	"slogger-transporter/pkg/foundation/errs"
+	"strings"
 	"sync"
 	"time"
 )
 
-const directory = "logs"
-
 type FileHandler struct {
 	logFile            *os.File
+	logDitPath         string
 	initFileMutex      sync.Mutex
 	currentLogFileName string
 }
 
-func NewFileHandler() (*FileHandler, error) {
-	h := &FileHandler{}
+func NewFileHandler(logDitPath string) (*FileHandler, error) {
+	h := &FileHandler{
+		logDitPath: strings.Trim(logDitPath, "/"),
+	}
 
 	err := h.freshFileHandler()
 
@@ -83,7 +85,13 @@ func (h *FileHandler) freshFileHandler() error {
 		return nil
 	}
 
-	filePath := filepath.Join(directory, actualLogFileName)
+	filePath := filepath.Join(h.logDitPath, actualLogFileName)
+
+	dir := filepath.Dir(filePath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return errs.Err(err)
+	}
 
 	if h.logFile != nil {
 		_ = h.logFile.Close()
