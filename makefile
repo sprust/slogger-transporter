@@ -31,7 +31,7 @@ run-queue-listen:
 	go run ./cmd/transporter/main.go queue:listen
 
 build:
-	CGO_ENABLED=0 GOOS=linux go build -o ./bin/ ./cmd/transporter/main.go \
+	CGO_ENABLED=0 GOOS=linux go build -v -a -o ./bin/ ./cmd/transporter/main.go \
 		&& chmod +x ./bin/main
 
 test:
