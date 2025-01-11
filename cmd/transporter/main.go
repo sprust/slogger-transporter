@@ -10,6 +10,7 @@ import (
 	"slogger-transporter/internal/commands"
 	"slogger-transporter/internal/config"
 	"slogger-transporter/pkg/foundation/app"
+	"strconv"
 	"strings"
 )
 
@@ -49,13 +50,26 @@ func main() {
 
 	newApp := app.NewApp(
 		commands.GetCommands(),
-		app.NewConfig(
-			getLogLevels(),
-			os.Getenv("LOG_DIR"),
-		),
+		initAppConfig(),
 	)
 
 	newApp.Start(commandName, commandArgs)
+}
+
+func initAppConfig() *app.Config {
+	logKeepDays, err := strconv.Atoi(os.Getenv("LOG_KEEP_DAYS"))
+
+	if err != nil {
+		fmt.Println("LOG_KEEP_DAYS is not set or invalid, using default value 3")
+
+		logKeepDays = 3
+	}
+
+	return app.NewConfig(
+		getLogLevels(),
+		os.Getenv("LOG_DIR"),
+		logKeepDays,
+	)
 }
 
 func getLogLevels() []slog.Level {

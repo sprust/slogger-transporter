@@ -99,7 +99,11 @@ func (a *App) AddLastCloseListener(listener io.Closer) {
 }
 
 func (a *App) initLogging() {
-	customHandler, err := logging.NewCustomHandler(logging.NewLevelPolicy(a.config.logLevels), a.config.logDitPath)
+	customHandler, err := logging.NewCustomHandler(
+		logging.NewLevelPolicy(a.config.logLevels),
+		a.config.logDirPath,
+		a.config.logKeepDays,
+	)
 
 	if err == nil {
 		slog.SetDefault(slog.New(customHandler))

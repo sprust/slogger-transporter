@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"slogger-transporter/pkg/foundation/errs"
 	"strings"
 	"sync"
@@ -13,14 +14,16 @@ import (
 
 type FileHandler struct {
 	logFile            *os.File
-	logDitPath         string
+	logDirPath         string
+	logKeepDays        int
 	initFileMutex      sync.Mutex
 	currentLogFileName string
 }
 
-func NewFileHandler(logDitPath string) (*FileHandler, error) {
+func NewFileHandler(logDirPath string, logKeepDays int) (*FileHandler, error) {
 	h := &FileHandler{
-		logDitPath: strings.Trim(logDitPath, "/"),
+		logDirPath:  strings.Trim(logDirPath, "/"),
+		logKeepDays: logKeepDays,
 	}
 
 	err := h.freshFileHandler()
@@ -28,6 +31,8 @@ func NewFileHandler(logDitPath string) (*FileHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	h.deleteOldFiles()
 
 	return h, nil
 }
@@ -72,7 +77,7 @@ func (h *FileHandler) Close() error {
 }
 
 func (h *FileHandler) freshFileHandler() error {
-	actualLogFileName := h.makeLogFileName()
+	actualLogFileName := h.makeLogFileName(time.Now())
 
 	if actualLogFileName == h.currentLogFileName {
 		return nil
@@ -85,7 +90,7 @@ func (h *FileHandler) freshFileHandler() error {
 		return nil
 	}
 
-	filePath := filepath.Join(h.logDitPath, actualLogFileName)
+	filePath := filepath.Join(h.logDirPath, actualLogFileName)
 
 	dir := filepath.Dir(filePath)
 
@@ -111,6 +116,60 @@ func (h *FileHandler) freshFileHandler() error {
 	return nil
 }
 
-func (h *FileHandler) makeLogFileName() string {
-	return time.Now().Format("2006-01-02") + ".log"
+func (h *FileHandler) deleteOldFiles() {
+	go func() {
+		for {
+			var currentLogFilePaths []string
+
+			filesInLogDir, err := os.ReadDir(h.logDirPath)
+
+			if err != nil {
+				slog.Error("Failed to read log directory: " + err.Error())
+
+				time.Sleep(1 * time.Minute)
+
+				return
+			}
+
+			for _, file := range filesInLogDir {
+				if !file.IsDir() && strings.HasSuffix(file.Name(), ".log") {
+					currentLogFilePaths = append(currentLogFilePaths, filepath.Join(h.logDirPath, file.Name()))
+				}
+			}
+
+			keepDays := h.logKeepDays + 1
+
+			var expectedFilePaths []string
+
+			for i := 0; i < keepDays; i++ {
+				expectedFilePaths = append(
+					expectedFilePaths,
+					filepath.Join(
+						h.logDirPath,
+						h.makeLogFileName(time.Now().AddDate(0, 0, -i)),
+					),
+				)
+			}
+
+			for _, currentLogFilePath := range currentLogFilePaths {
+				if slices.Index(expectedFilePaths, currentLogFilePath) != -1 {
+					continue
+				}
+
+				err = os.Remove(currentLogFilePath)
+
+				if err != nil {
+					slog.Error("Failed to remove old log file: " + currentLogFilePath + ": " + err.Error())
+				} else {
+					slog.Warn("Removed old log file: " + currentLogFilePath)
+				}
+			}
+
+			time.Sleep(1 * time.Hour)
+		}
+	}()
+}
+
+func (h *FileHandler) makeLogFileName(time time.Time) string {
+	return time.Format("2006-01-02") + ".log"
 }

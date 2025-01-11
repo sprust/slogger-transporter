@@ -3,13 +3,15 @@ package app
 import "log/slog"
 
 type Config struct {
-	logLevels  []slog.Level
-	logDitPath string
+	logLevels   []slog.Level
+	logDirPath  string
+	logKeepDays int
 }
 
-func NewConfig(logLevels []slog.Level, logDitPath string) *Config {
+func NewConfig(logLevels []slog.Level, logDirPath string, logKeepDays int) *Config {
 	return &Config{
-		logLevels:  logLevels,
-		logDitPath: logDitPath,
+		logLevels:   logLevels,
+		logDirPath:  logDirPath,
+		logKeepDays: logKeepDays,
 	}
 }
