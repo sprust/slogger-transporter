@@ -2,7 +2,7 @@ package config
 
 import (
 	"os"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/pkg/foundation/errs"
 	"strconv"
 	"sync"
 )

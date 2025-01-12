@@ -3,8 +3,8 @@ package trace_collector
 import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"slogger-transporter/internal/api/grpc/gen/services/trace_collector_gen"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/api/grpc/gen/services/trace_collector_gen"
+	"slogger/pkg/foundation/errs"
 )
 
 type Client struct {

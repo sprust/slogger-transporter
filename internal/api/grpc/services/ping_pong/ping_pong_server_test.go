@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
-	"slogger-transporter/internal/api/grpc/gen/services/ping_pong_gen"
+	"slogger/internal/api/grpc/gen/services/ping_pong_gen"
 	"testing"
 	"time"
 )

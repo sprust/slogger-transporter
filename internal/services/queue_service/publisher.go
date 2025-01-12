@@ -1,7 +1,7 @@
 package queue_service
 
 import (
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/pkg/foundation/errs"
 )
 
 type Publisher struct {

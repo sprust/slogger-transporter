@@ -3,8 +3,8 @@ package logging
 import (
 	"context"
 	"log/slog"
-	"slogger-transporter/pkg/foundation/errs"
-	"slogger-transporter/pkg/foundation/logging/handlers"
+	"slogger/pkg/foundation/errs"
+	"slogger/pkg/foundation/logging/handlers"
 )
 
 type CustomHandler struct {

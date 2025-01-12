@@ -3,7 +3,7 @@ package ping_pong
 import (
 	"context"
 	"log/slog"
-	gen "slogger-transporter/internal/api/grpc/gen/services/ping_pong_gen"
+	gen "slogger/internal/api/grpc/gen/services/ping_pong_gen"
 )
 
 type Server struct {

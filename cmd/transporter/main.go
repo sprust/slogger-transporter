@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"os"
 	"slices"
-	"slogger-transporter/internal/commands"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/pkg/foundation/app"
+	"slogger/internal/commands"
+	"slogger/internal/config"
+	"slogger/pkg/foundation/app"
 	"strconv"
 	"strings"
 )

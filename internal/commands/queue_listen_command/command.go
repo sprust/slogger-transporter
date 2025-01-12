@@ -2,9 +2,9 @@ package queue_listen_command
 
 import (
 	"context"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/queue_service"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/config"
+	"slogger/internal/services/queue_service"
+	"slogger/pkg/foundation/errs"
 	"sync"
 )
 

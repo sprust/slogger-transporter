@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"runtime"
-	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
+	gen "slogger/internal/api/grpc/gen/services/grpc_manager_gen"
 	"syscall"
 )
 

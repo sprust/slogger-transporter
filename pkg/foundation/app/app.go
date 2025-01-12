@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"slogger-transporter/pkg/foundation/commands"
-	"slogger-transporter/pkg/foundation/errs"
-	"slogger-transporter/pkg/foundation/logging"
+	"slogger/pkg/foundation/commands"
+	"slogger/pkg/foundation/errs"
+	"slogger/pkg/foundation/logging"
 	"syscall"
 )
 

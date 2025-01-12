@@ -2,9 +2,9 @@ package serve_rpc_command
 
 import (
 	"context"
-	"slogger-transporter/internal/api/rpc"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/api/rpc"
+	"slogger/internal/config"
+	"slogger/pkg/foundation/errs"
 )
 
 type Command struct {

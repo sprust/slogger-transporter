@@ -3,8 +3,8 @@ package connections
 import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/config"
+	"slogger/pkg/foundation/errs"
 	"sync"
 )
 

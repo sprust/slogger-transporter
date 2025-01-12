@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net"
 	"net/rpc"
-	"slogger-transporter/internal/api/rpc/ping_pong"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/api/rpc/ping_pong"
+	"slogger/pkg/foundation/errs"
 )
 
 var functions = []any{

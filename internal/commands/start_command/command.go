@@ -3,9 +3,9 @@ package start_command
 import (
 	"context"
 	"errors"
-	"slogger-transporter/internal/commands/queue_listen_command"
-	"slogger-transporter/internal/commands/serve_grpc_command"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/commands/queue_listen_command"
+	"slogger/internal/commands/serve_grpc_command"
+	"slogger/pkg/foundation/errs"
 	"sync"
 )
 

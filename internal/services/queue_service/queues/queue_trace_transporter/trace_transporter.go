@@ -3,10 +3,10 @@ package queue_trace_transporter
 import (
 	"encoding/json"
 	"errors"
-	"slogger-transporter/internal/services/queue_service/connections"
-	"slogger-transporter/internal/services/queue_service/objects"
-	"slogger-transporter/internal/services/trace_transporter_service"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/services/queue_service/connections"
+	"slogger/internal/services/queue_service/objects"
+	"slogger/internal/services/trace_transporter_service"
+	"slogger/pkg/foundation/errs"
 	"strings"
 	"sync"
 )

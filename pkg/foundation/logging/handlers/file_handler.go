@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/pkg/foundation/errs"
 	"strings"
 	"sync"
 	"time"

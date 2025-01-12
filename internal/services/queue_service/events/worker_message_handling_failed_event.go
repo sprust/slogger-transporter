@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"log/slog"
-	"slogger-transporter/internal/services/queue_service/objects"
+	"slogger/internal/services/queue_service/objects"
 )
 
 type WorkerMessageHandlingFailed struct {

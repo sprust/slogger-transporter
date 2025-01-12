@@ -3,10 +3,10 @@ package queue_service
 import (
 	"errors"
 	"fmt"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/internal/services/queue_service/objects"
-	"slogger-transporter/internal/services/queue_service/queues/queue_trace_transporter"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/config"
+	"slogger/internal/services/queue_service/objects"
+	"slogger/internal/services/queue_service/queues/queue_trace_transporter"
+	"slogger/pkg/foundation/errs"
 )
 
 type Factory struct {

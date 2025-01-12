@@ -4,8 +4,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
-	gen "slogger-transporter/internal/api/grpc/gen/services/grpc_manager_gen"
-	"slogger-transporter/pkg/foundation/errs"
+	gen "slogger/internal/api/grpc/gen/services/grpc_manager_gen"
+	"slogger/pkg/foundation/errs"
 )
 
 type Client struct {

@@ -2,9 +2,9 @@ package serve_grpc_command
 
 import (
 	"context"
-	"slogger-transporter/internal/api/grpc"
-	"slogger-transporter/internal/config"
-	"slogger-transporter/pkg/foundation/errs"
+	"slogger/internal/api/grpc"
+	"slogger/internal/config"
+	"slogger/pkg/foundation/errs"
 )
 
 type Command struct {

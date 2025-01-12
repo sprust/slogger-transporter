@@ -1,12 +1,12 @@
 package commands
 
 import (
-	"slogger-transporter/internal/commands/manage_command"
-	"slogger-transporter/internal/commands/queue_listen_command"
-	"slogger-transporter/internal/commands/serve_grpc_command"
-	"slogger-transporter/internal/commands/serve_rpc_command"
-	"slogger-transporter/internal/commands/start_command"
-	foundationCommands "slogger-transporter/pkg/foundation/commands"
+	"slogger/internal/commands/manage_command"
+	"slogger/internal/commands/queue_listen_command"
+	"slogger/internal/commands/serve_grpc_command"
+	"slogger/internal/commands/serve_rpc_command"
+	"slogger/internal/commands/start_command"
+	foundationCommands "slogger/pkg/foundation/commands"
 )
 
 const (
