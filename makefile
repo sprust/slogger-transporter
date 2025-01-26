@@ -46,10 +46,10 @@ grpc-generate:
 			./internal/api/grpc/proto/*.proto
 
 bin-start:
-	./bin/main start
+	./bin/strans start
 
 bin-serve-grpc:
-	./bin/main serve:grpc
+	./bin/strans serve:grpc
 
 bin-queue-listen:
-	./bin/main queue:listen
+	./bin/strans queue:listen
