@@ -9,23 +9,34 @@ import (
 	"os"
 	"os/signal"
 	"slogger/pkg/foundation/commands"
+	"slogger/pkg/foundation/config"
 	"slogger/pkg/foundation/errs"
 	"slogger/pkg/foundation/logging"
+	"slogger/pkg/foundation/queue"
+	"slogger/pkg/foundation/queue/objects"
 	"syscall"
 )
 
 type App struct {
 	commands           map[string]commands.CommandInterface
-	config             *Config
+	config             config.Config
+	queue              *queue.Service
 	closeListeners     []io.Closer
 	lastCloseListeners []io.Closer
 }
 
-func NewApp(commands map[string]commands.CommandInterface, config *Config) App {
+func NewApp(
+	commands map[string]commands.CommandInterface,
+	queues map[string]objects.QueueInterface,
+	config config.Config,
+) App {
 	app := App{
 		commands: commands,
+		queue:    queue.InitQueue(&config.RmqConfig, queues),
 		config:   config,
 	}
+
+	app.AddFirstCloseListener(app.queue)
 
 	return app
 }
@@ -100,9 +111,9 @@ func (a *App) AddLastCloseListener(listener io.Closer) {
 
 func (a *App) initLogging() {
 	customHandler, err := logging.NewCustomHandler(
-		logging.NewLevelPolicy(a.config.logLevels),
-		a.config.logDirPath,
-		a.config.logKeepDays,
+		logging.NewLevelPolicy(a.config.LogConfig.Levels),
+		a.config.LogConfig.DirPath,
+		a.config.LogConfig.KeepDays,
 	)
 
 	if err == nil {

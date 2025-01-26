@@ -3,15 +3,15 @@ package start_command
 import (
 	"context"
 	"errors"
-	"slogger/internal/commands/queue_listen_command"
 	"slogger/internal/commands/serve_grpc_command"
 	"slogger/pkg/foundation/errs"
+	"slogger/pkg/foundation/queue"
 	"sync"
 )
 
 type Command struct {
 	serveGrpcCommand   *serve_grpc_command.Command
-	queueListenCommand *queue_listen_command.Command
+	queueListenCommand *queue.Command
 }
 
 func (c *Command) Title() string {
@@ -48,7 +48,7 @@ func (c *Command) Handle(ctx context.Context, arguments []string) error {
 	go func() {
 		defer wg.Done()
 
-		c.queueListenCommand = &queue_listen_command.Command{}
+		c.queueListenCommand = &queue.Command{}
 
 		err := c.queueListenCommand.Handle(ctx, []string{})
 

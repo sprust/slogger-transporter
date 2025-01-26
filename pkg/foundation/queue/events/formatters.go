@@ -1,7 +1,7 @@
 package events
 
 import (
-	"slogger/internal/services/queue_service/objects"
+	"slogger/pkg/foundation/queue/objects"
 	"strconv"
 	"strings"
 )

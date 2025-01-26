@@ -9,7 +9,10 @@ import (
 	"slices"
 	"slogger/internal/commands"
 	"slogger/internal/config"
+	"slogger/internal/queues"
 	"slogger/pkg/foundation/app"
+	appConfig "slogger/pkg/foundation/config"
+	"slogger/pkg/foundation/queue/objects"
 	"strconv"
 	"strings"
 )
@@ -50,13 +53,14 @@ func main() {
 
 	newApp := app.NewApp(
 		commands.GetCommands(),
+		getQueues(),
 		initAppConfig(),
 	)
 
 	newApp.Start(commandName, commandArgs)
 }
 
-func initAppConfig() *app.Config {
+func initAppConfig() appConfig.Config {
 	logKeepDays, err := strconv.Atoi(os.Getenv("LOG_KEEP_DAYS"))
 
 	if err != nil {
@@ -65,11 +69,19 @@ func initAppConfig() *app.Config {
 		logKeepDays = 3
 	}
 
-	return app.NewConfig(
-		getLogLevels(),
-		os.Getenv("LOG_DIR"),
-		logKeepDays,
-	)
+	return appConfig.Config{
+		LogConfig: appConfig.LogConfig{
+			Levels:   getLogLevels(),
+			DirPath:  os.Getenv("LOG_DIR"),
+			KeepDays: logKeepDays,
+		},
+		RmqConfig: appConfig.RmqConfig{
+			User: os.Getenv("RABBITMQ_USER"),
+			Pass: os.Getenv("RABBITMQ_PASSWORD"),
+			Host: os.Getenv("RABBITMQ_HOST"),
+			Port: os.Getenv("RABBITMQ_PORT"),
+		},
+	}
 }
 
 func getLogLevels() []slog.Level {
@@ -111,4 +123,30 @@ func filterArgs() []string {
 	}
 
 	return result
+}
+
+func getQueues() map[string]objects.QueueInterface {
+	factory, err := queues.NewFactory()
+
+	if err != nil {
+		panic(err)
+	}
+
+	queueNames := []string{
+		config.GetConfig().GetTraceTransporterQueueName(),
+	}
+
+	queueList := make(map[string]objects.QueueInterface, len(queueNames))
+
+	for _, queueName := range queueNames {
+		q, err := factory.GetQueue(queueName)
+
+		if err != nil {
+			panic(err)
+		}
+
+		queueList[queueName] = q
+	}
+
+	return queueList
 }

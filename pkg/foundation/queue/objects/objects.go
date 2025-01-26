@@ -13,7 +13,6 @@ type QueueSettings struct {
 
 type QueueInterface interface {
 	GetSettings() (*QueueSettings, error)
-	Publish(payload []byte) error
 	Handle(job *Job) error
 }
 
