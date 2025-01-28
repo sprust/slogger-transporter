@@ -31,6 +31,10 @@ func init() {
 		err = godotenv.Load()
 	} else {
 		err = godotenv.Load(*env)
+
+		args = slices.DeleteFunc(args, func(arg string) bool {
+			return strings.HasPrefix(arg, "--env=")
+		})
 	}
 
 	if err != nil {

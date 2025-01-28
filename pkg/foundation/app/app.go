@@ -46,7 +46,7 @@ func (a *App) Start(commandName string, args []string) {
 			fmt.Printf(" %s %s - %s\n", key, command.Parameters(), command.Title())
 		}
 
-		os.Exit(0)
+		return
 	}
 
 	a.initLogging()
