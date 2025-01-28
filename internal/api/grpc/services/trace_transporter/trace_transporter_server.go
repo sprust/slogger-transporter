@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	gen "slogger/internal/api/grpc/gen/services/trace_transporter_gen"
 	"slogger/internal/config"
-	"slogger/internal/services/queue_service"
 	"slogger/pkg/foundation/atomic"
 	"slogger/pkg/foundation/errs"
+	"slogger/pkg/services/queue"
 	"strconv"
 	"time"
 )
@@ -17,14 +17,14 @@ const waitingWorkersEndingInSeconds = 10
 
 type Server struct {
 	gen.UnimplementedTraceTransporterServer
-	publisher            *queue_service.Publisher
+	queueService         *queue.Service
 	closing              atomic.Boolean
 	requestHandlingCount atomic.Counter
 }
 
 func NewServer() *Server {
 	return &Server{
-		publisher: queue_service.NewPublisher(),
+		queueService: queue.GetQueueService(),
 	}
 }
 
@@ -43,7 +43,10 @@ func (s *Server) Push(
 
 		slog.Info("received trace transporter push request: " + strconv.Itoa(len(in.GetPayload())))
 
-		err := s.publisher.Publish(config.GetConfig().GetTraceTransporterQueueName(), []byte(in.GetPayload()))
+		err := s.queueService.Publish(
+			config.GetConfig().GetTraceTransporterQueueName(),
+			[]byte(in.GetPayload()),
+		)
 
 		if err != nil {
 			slog.Error("Failed to publish trace transporter payload: " + err.Error())

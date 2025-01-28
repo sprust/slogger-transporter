@@ -9,22 +9,30 @@ import (
 	"os"
 	"os/signal"
 	"slogger/pkg/foundation/commands"
+	"slogger/pkg/foundation/config"
 	"slogger/pkg/foundation/errs"
 	"slogger/pkg/foundation/logging"
+	"strings"
 	"syscall"
 )
 
 type App struct {
+	config             config.Config
 	commands           map[string]commands.CommandInterface
-	config             *Config
+	serviceProviders   []ServiceProviderInterface
 	closeListeners     []io.Closer
 	lastCloseListeners []io.Closer
 }
 
-func NewApp(commands map[string]commands.CommandInterface, config *Config) App {
+func NewApp(
+	config config.Config,
+	commands map[string]commands.CommandInterface,
+	serviceProviders []ServiceProviderInterface,
+) App {
 	app := App{
-		commands: commands,
-		config:   config,
+		config:           config,
+		commands:         commands,
+		serviceProviders: serviceProviders,
 	}
 
 	return app
@@ -38,7 +46,7 @@ func (a *App) Start(commandName string, args []string) {
 			fmt.Printf(" %s %s - %s\n", key, command.Parameters(), command.Title())
 		}
 
-		os.Exit(0)
+		return
 	}
 
 	a.initLogging()
@@ -50,6 +58,14 @@ func (a *App) Start(commandName string, args []string) {
 	}
 
 	a.AddFirstCloseListener(command)
+
+	for _, provider := range a.serviceProviders {
+		err := provider.Register()
+
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	signals := make(chan os.Signal)
 
@@ -67,7 +83,9 @@ func (a *App) Start(commandName string, args []string) {
 		}
 	}()
 
-	err := command.Handle(context.Background(), args)
+	filteredArgs := a.filterArgs(args)
+
+	err := command.Handle(context.Background(), filteredArgs)
 
 	if err != nil {
 		panic(err)
@@ -100,9 +118,9 @@ func (a *App) AddLastCloseListener(listener io.Closer) {
 
 func (a *App) initLogging() {
 	customHandler, err := logging.NewCustomHandler(
-		logging.NewLevelPolicy(a.config.logLevels),
-		a.config.logDirPath,
-		a.config.logKeepDays,
+		logging.NewLevelPolicy(a.config.LogConfig.Levels),
+		a.config.LogConfig.DirPath,
+		a.config.LogConfig.KeepDays,
 	)
 
 	if err == nil {
@@ -112,4 +130,16 @@ func (a *App) initLogging() {
 	}
 
 	a.AddLastCloseListener(customHandler)
+}
+
+func (a *App) filterArgs(args []string) []string {
+	var result []string
+
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "--") {
+			result = append(result, arg)
+		}
+	}
+
+	return result
 }

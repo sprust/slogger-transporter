@@ -22,7 +22,7 @@ type Command struct {
 }
 
 func (c *Command) Title() string {
-	return "Stop grpc server"
+	return "Stat or stop the grpc server"
 }
 
 func (c *Command) Parameters() string {
@@ -42,7 +42,7 @@ func (c *Command) Handle(ctx context.Context, arguments []string) error {
 		} else if comm == "stat" {
 			err = c.handleStat()
 		} else {
-			err = errors.New("unknown command " + comm)
+			err = errors.New("expected argument: " + c.Parameters())
 		}
 	}
 

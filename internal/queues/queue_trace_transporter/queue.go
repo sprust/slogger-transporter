@@ -3,10 +3,9 @@ package queue_trace_transporter
 import (
 	"encoding/json"
 	"errors"
-	"slogger/internal/services/queue_service/connections"
-	"slogger/internal/services/queue_service/objects"
 	"slogger/internal/services/trace_transporter_service"
 	"slogger/pkg/foundation/errs"
+	"slogger/pkg/services/queue/objects"
 	"strings"
 	"sync"
 )
@@ -59,23 +58,6 @@ func (q *QueueTraceTransporter) GetSettings() (*objects.QueueSettings, error) {
 	}
 
 	return q.settings, nil
-}
-
-// Publish TODO: maybe validate via unmarshal
-func (q *QueueTraceTransporter) Publish(payload []byte) error {
-	connection := connections.NewConnection()
-
-	settings, err := q.GetSettings()
-
-	if err != nil {
-		return errs.Err(err)
-	}
-
-	err = connection.Publish(settings.QueueName, payload)
-
-	_ = connection.Close()
-
-	return errs.Err(err)
 }
 
 func (q *QueueTraceTransporter) Handle(job *objects.Job) error {

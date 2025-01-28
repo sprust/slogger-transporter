@@ -3,8 +3,8 @@ package connections
 import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger/internal/config"
 	"slogger/pkg/foundation/errs"
+	"slogger/pkg/services/queue/objects"
 	"sync"
 )
 
@@ -15,15 +15,13 @@ type Connection struct {
 	mutex      sync.Mutex
 }
 
-func NewConnection() *Connection {
-	rmqParams := config.GetConfig().GetRmqConfig()
-
+func NewConnection(rmqParams objects.RmqConfig) *Connection {
 	url := fmt.Sprintf(
 		"amqp://%s:%s@%s:%s/",
-		rmqParams.RmqUser,
-		rmqParams.RmqPass,
-		rmqParams.RmqHost,
-		rmqParams.RmqPort,
+		rmqParams.User,
+		rmqParams.Pass,
+		rmqParams.Host,
+		rmqParams.Port,
 	)
 
 	return &Connection{url: url}

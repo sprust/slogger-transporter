@@ -9,7 +9,11 @@ import (
 	"slices"
 	"slogger/internal/commands"
 	"slogger/internal/config"
+	"slogger/internal/queues"
 	"slogger/pkg/foundation/app"
+	appConfig "slogger/pkg/foundation/config"
+	"slogger/pkg/services/queue"
+	"slogger/pkg/services/queue/objects"
 	"strconv"
 	"strings"
 )
@@ -28,7 +32,9 @@ func init() {
 	} else {
 		err = godotenv.Load(*env)
 
-		args = filterArgs()
+		args = slices.DeleteFunc(args, func(arg string) bool {
+			return strings.HasPrefix(arg, "--env=")
+		})
 	}
 
 	if err != nil {
@@ -45,18 +51,23 @@ func main() {
 	}
 
 	if len(args) > 2 {
-		commandArgs = args[2:]
+		argsSlice := args[2:]
+
+		commandArgs = make([]string, len(argsSlice))
+
+		copy(commandArgs, argsSlice)
 	}
 
 	newApp := app.NewApp(
+		getAppConfig(),
 		commands.GetCommands(),
-		initAppConfig(),
+		getServiceProviders(),
 	)
 
 	newApp.Start(commandName, commandArgs)
 }
 
-func initAppConfig() *app.Config {
+func getAppConfig() appConfig.Config {
 	logKeepDays, err := strconv.Atoi(os.Getenv("LOG_KEEP_DAYS"))
 
 	if err != nil {
@@ -65,11 +76,13 @@ func initAppConfig() *app.Config {
 		logKeepDays = 3
 	}
 
-	return app.NewConfig(
-		getLogLevels(),
-		os.Getenv("LOG_DIR"),
-		logKeepDays,
-	)
+	return appConfig.Config{
+		LogConfig: appConfig.LogConfig{
+			Levels:   getLogLevels(),
+			DirPath:  os.Getenv("LOG_DIR"),
+			KeepDays: logKeepDays,
+		},
+	}
 }
 
 func getLogLevels() []slog.Level {
@@ -101,14 +114,37 @@ func getLogLevels() []slog.Level {
 	return slogLevels
 }
 
-func filterArgs() []string {
-	var result []string
+func getServiceProviders() []app.ServiceProviderInterface {
+	return []app.ServiceProviderInterface{
+		getQueueServiceProvider(),
+	}
+}
 
-	for _, arg := range args {
-		if !strings.HasPrefix(arg, "--") {
-			result = append(result, arg)
-		}
+func getQueueServiceProvider() app.ServiceProviderInterface {
+	factory, err := queues.NewFactory()
+
+	if err != nil {
+		panic(err)
 	}
 
-	return result
+	queueNames := []string{
+		config.GetConfig().GetTraceTransporterQueueName(),
+	}
+
+	queueList := make(map[string]objects.QueueInterface, len(queueNames))
+
+	for _, queueName := range queueNames {
+		q, err := factory.GetQueue(queueName)
+
+		if err != nil {
+			panic(err)
+		}
+
+		queueList[queueName] = q
+	}
+
+	return queue.NewQueueServiceProvider(
+		*config.GetConfig().GetRmqConfig(),
+		queueList,
+	)
 }

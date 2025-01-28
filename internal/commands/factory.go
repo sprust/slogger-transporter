@@ -2,11 +2,11 @@ package commands
 
 import (
 	"slogger/internal/commands/manage_command"
-	"slogger/internal/commands/queue_listen_command"
 	"slogger/internal/commands/serve_grpc_command"
 	"slogger/internal/commands/serve_rpc_command"
 	"slogger/internal/commands/start_command"
 	foundationCommands "slogger/pkg/foundation/commands"
+	"slogger/pkg/services/queue"
 )
 
 const (
@@ -22,7 +22,7 @@ var commands = map[string]foundationCommands.CommandInterface{
 	ServeGrpcCommandName:   &serve_grpc_command.Command{},
 	ManageCommandName:      &manage_command.Command{},
 	ServeRpcCommandName:    &serve_rpc_command.Command{},
-	QueueListenCommandName: &queue_listen_command.Command{},
+	QueueListenCommandName: &queue.Command{},
 }
 
 func GetCommands() map[string]foundationCommands.CommandInterface {

@@ -1,5 +1,12 @@
 package objects
 
+type RmqConfig struct {
+	User string
+	Pass string
+	Host string
+	Port string
+}
+
 type Message struct {
 	Id      string `json:"id"`
 	Payload string `json:"payload"`
@@ -13,7 +20,6 @@ type QueueSettings struct {
 
 type QueueInterface interface {
 	GetSettings() (*QueueSettings, error)
-	Publish(payload []byte) error
 	Handle(job *Job) error
 }
 

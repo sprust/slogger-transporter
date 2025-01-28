@@ -1,31 +1,30 @@
-package queue_service
+package queue
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"slogger/internal/config"
-	"slogger/internal/services/queue_service/connections"
-	"slogger/internal/services/queue_service/events"
-	"slogger/internal/services/queue_service/objects"
 	"slogger/pkg/foundation/atomic"
 	"slogger/pkg/foundation/errs"
 	foundationEvents "slogger/pkg/foundation/events"
+	"slogger/pkg/services/queue/connections"
+	events2 "slogger/pkg/services/queue/events"
+	"slogger/pkg/services/queue/objects"
 	"sync"
 	"time"
 )
 
 const (
-	maxTries                      = 120
-	waitingWorkersEndingInSeconds = 10
+	maxTries                        = 120
+	waitingWorkersFinishedInSeconds = 10
 )
 
 type Listener struct {
 	queue            objects.QueueInterface
 	queueSettings    *objects.QueueSettings
 	eventsDispatcher *foundationEvents.Dispatcher
-	rmqParams        *config.RmqParams
+	config           objects.RmqConfig
 	connections      map[int]*connections.Connection
 	publisher        *Publisher
 	connectionsMutex sync.Mutex
@@ -34,7 +33,11 @@ type Listener struct {
 	handlingCount    atomic.Counter
 }
 
-func NewListener(queue objects.QueueInterface) (*Listener, error) {
+func NewListener(
+	config objects.RmqConfig,
+	publisher *Publisher,
+	queue objects.QueueInterface,
+) (*Listener, error) {
 	settings, err := queue.GetSettings()
 
 	if err != nil {
@@ -44,10 +47,10 @@ func NewListener(queue objects.QueueInterface) (*Listener, error) {
 	listener := &Listener{
 		queue:            queue,
 		queueSettings:    settings,
-		rmqParams:        config.GetConfig().GetRmqConfig(),
+		config:           config,
 		eventsDispatcher: foundationEvents.GetDispatcher(),
 		connections:      make(map[int]*connections.Connection),
-		publisher:        NewPublisher(),
+		publisher:        publisher,
 	}
 
 	listener.closed.Set(true)
@@ -97,7 +100,7 @@ func (l *Listener) Listen() error {
 func (l *Listener) Close() error {
 	_ = l.eventsDispatcher.Dispatch(
 		context.TODO(),
-		events.NewQueueListeningClosingEvent(l.queueSettings.QueueName),
+		events2.NewQueueListeningClosingEvent(l.queueSettings.QueueName),
 	)
 
 	l.closing.Set(true)
@@ -108,7 +111,7 @@ func (l *Listener) Close() error {
 		if err != nil {
 			_ = l.eventsDispatcher.Dispatch(
 				context.TODO(),
-				events.NewWorkerConnectionClosingFailedEvent(l.queueSettings.QueueName, workerId, err),
+				events2.NewWorkerConnectionClosingFailedEvent(l.queueSettings.QueueName, workerId, err),
 			)
 		}
 	}
@@ -118,16 +121,16 @@ func (l *Listener) Close() error {
 
 		_ = l.eventsDispatcher.Dispatch(
 			context.TODO(),
-			events.NewJobsFinishWaitingEvent(l.queueSettings.QueueName, waitingWorkersEndingInSeconds),
+			events2.NewJobsFinishWaitingEvent(l.queueSettings.QueueName, waitingWorkersFinishedInSeconds),
 		)
 
 		for l.handlingCount.Get() > 0 {
 			time.Sleep(1 * time.Second)
 
-			if time.Now().Sub(start).Seconds() > waitingWorkersEndingInSeconds {
+			if time.Now().Sub(start).Seconds() > waitingWorkersFinishedInSeconds {
 				_ = l.eventsDispatcher.Dispatch(
 					context.TODO(),
-					events.NewJobsForceClosingEvent(l.queueSettings.QueueName),
+					events2.NewJobsForceClosingEvent(l.queueSettings.QueueName),
 				)
 
 				break
@@ -136,13 +139,13 @@ func (l *Listener) Close() error {
 
 		_ = l.eventsDispatcher.Dispatch(
 			context.TODO(),
-			events.NewJobsFinishedEvent(l.queueSettings.QueueName),
+			events2.NewJobsFinishedEvent(l.queueSettings.QueueName),
 		)
 	}
 
 	_ = l.eventsDispatcher.Dispatch(
 		context.TODO(),
-		events.NewQueueListeningClosedEvent(l.queueSettings.QueueName),
+		events2.NewQueueListeningClosedEvent(l.queueSettings.QueueName),
 	)
 
 	l.closing.Set(false)
@@ -162,7 +165,7 @@ func (l *Listener) startWorker(workerId int) {
 		if isReconnect {
 			_ = l.eventsDispatcher.Dispatch(
 				context.TODO(),
-				events.NewWorkerReconnectingEvent(l.queueSettings.QueueName, workerId),
+				events2.NewWorkerReconnectingEvent(l.queueSettings.QueueName, workerId),
 			)
 
 			time.Sleep(1 * time.Second)
@@ -170,11 +173,11 @@ func (l *Listener) startWorker(workerId int) {
 			isReconnect = true
 		}
 
-		connection := connections.NewConnection()
+		connection := connections.NewConnection(l.config)
 
 		_ = l.eventsDispatcher.Dispatch(
 			context.TODO(),
-			events.NewWorkerConnectedEvent(l.queueSettings.QueueName, workerId),
+			events2.NewWorkerConnectedEvent(l.queueSettings.QueueName, workerId),
 		)
 
 		l.addConnection(workerId, connection)
@@ -184,7 +187,7 @@ func (l *Listener) startWorker(workerId int) {
 		if err != nil {
 			_ = l.eventsDispatcher.Dispatch(
 				context.TODO(),
-				events.NewWorkerRegisterConsumerFailedEvent(l.queueSettings.QueueName, workerId, err),
+				events2.NewWorkerRegisterConsumerFailedEvent(l.queueSettings.QueueName, workerId, err),
 			)
 
 			_ = connection.Close()
@@ -201,7 +204,7 @@ func (l *Listener) startWorker(workerId int) {
 }
 
 func (l *Listener) declareQueue() error {
-	connection := connections.NewConnection()
+	connection := connections.NewConnection(l.config)
 
 	err := connection.DeclareQueue(l.queueSettings.QueueName)
 
@@ -222,7 +225,7 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 
 	_ = l.eventsDispatcher.Dispatch(
 		context.TODO(),
-		events.NewWorkerDeliveryReceivedEvent(l.queueSettings.QueueName, workerId, len(delivery.Body)),
+		events2.NewWorkerDeliveryReceivedEvent(l.queueSettings.QueueName, workerId, len(delivery.Body)),
 	)
 
 	var message objects.Message
@@ -232,7 +235,7 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 	if err != nil {
 		_ = l.eventsDispatcher.Dispatch(
 			context.TODO(),
-			events.NewWorkerMessageUnmarshalFailedEvent(l.queueSettings.QueueName, workerId, err),
+			events2.NewWorkerMessageUnmarshalFailedEvent(l.queueSettings.QueueName, workerId, err),
 		)
 		l.handlingCount.Decrement()
 		return
@@ -247,7 +250,7 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 
 	_ = l.eventsDispatcher.Dispatch(
 		context.TODO(),
-		events.NewWorkerMessageHandlingFailed(l.queueSettings.QueueName, workerId, &message, err),
+		events2.NewWorkerMessageHandlingFailed(l.queueSettings.QueueName, workerId, &message, err),
 	)
 
 	message.Tries += 1
@@ -255,18 +258,19 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 	if message.Tries > maxTries {
 		_ = l.eventsDispatcher.Dispatch(
 			context.TODO(),
-			events.NewWorkerRetryingMessageMaxTriesReachedEvent(l.queueSettings.QueueName, workerId, &message),
+			events2.NewWorkerRetryingMessageMaxTriesReachedEvent(l.queueSettings.QueueName, workerId, &message),
 		)
 		l.handlingCount.Decrement()
 		return
 	}
 
+	// TODO: add retry delay
 	go func() {
 		defer l.handlingCount.Decrement()
 
 		_ = l.eventsDispatcher.Dispatch(
 			context.TODO(),
-			events.NewWorkerMessageRetryEvent(l.queueSettings.QueueName, workerId, &message),
+			events2.NewWorkerMessageRetryEvent(l.queueSettings.QueueName, workerId, &message),
 		)
 
 		var payload []byte
@@ -276,7 +280,7 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 		if err != nil {
 			_ = l.eventsDispatcher.Dispatch(
 				context.TODO(),
-				events.NewWorkerRetryingMessageUnmarshalFailedEvent(l.queueSettings.QueueName, workerId, err),
+				events2.NewWorkerRetryingMessageUnmarshalFailedEvent(l.queueSettings.QueueName, workerId, err),
 			)
 
 			return
@@ -285,19 +289,19 @@ func (l *Listener) handleDelivery(workerId int, delivery amqp.Delivery) {
 		time.Sleep(1 * time.Second)
 
 		err = l.publisher.Publish(
-			l.queueSettings.QueueName,
+			l.queueSettings,
 			payload,
 		)
 
 		if err == nil {
 			_ = l.eventsDispatcher.Dispatch(
 				context.TODO(),
-				events.NewWorkerRetryingMessagePublishedEvent(l.queueSettings.QueueName, workerId, &message),
+				events2.NewWorkerRetryingMessagePublishedEvent(l.queueSettings.QueueName, workerId, &message),
 			)
 		} else {
 			_ = l.eventsDispatcher.Dispatch(
 				context.TODO(),
-				events.NewWorkerRetryingMessagePublishFailedEvent(l.queueSettings.QueueName, workerId, &message, err),
+				events2.NewWorkerRetryingMessagePublishFailedEvent(l.queueSettings.QueueName, workerId, &message, err),
 			)
 		}
 	}()
