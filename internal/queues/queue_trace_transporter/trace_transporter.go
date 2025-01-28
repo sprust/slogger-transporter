@@ -5,7 +5,7 @@ import (
 	"errors"
 	"slogger/internal/services/trace_transporter_service"
 	"slogger/pkg/foundation/errs"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue/objects"
 	"strings"
 	"sync"
 )

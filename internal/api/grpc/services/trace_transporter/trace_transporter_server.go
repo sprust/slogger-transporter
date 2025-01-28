@@ -8,7 +8,7 @@ import (
 	"slogger/internal/config"
 	"slogger/pkg/foundation/atomic"
 	"slogger/pkg/foundation/errs"
-	"slogger/pkg/foundation/queue"
+	"slogger/pkg/services/queue"
 	"strconv"
 	"time"
 )

@@ -5,6 +5,7 @@ import (
 )
 
 type Command struct {
+	service *Service
 }
 
 func (c *Command) Title() string {
@@ -16,9 +17,15 @@ func (c *Command) Parameters() string {
 }
 
 func (c *Command) Handle(ctx context.Context, arguments []string) error {
-	return GetQueueService().Listen()
+	c.service = GetQueueService()
+
+	return c.service.Listen()
 }
 
 func (c *Command) Close() error {
-	return nil
+	if c.service == nil {
+		return nil
+	}
+
+	return c.service.Close()
 }

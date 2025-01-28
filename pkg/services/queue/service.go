@@ -3,9 +3,8 @@ package queue
 import (
 	"errors"
 	"fmt"
-	"slogger/pkg/foundation/config"
 	"slogger/pkg/foundation/errs"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue/objects"
 	"sync"
 )
 
@@ -13,12 +12,12 @@ var service *Service
 var once sync.Once
 
 type Service struct {
-	config    *config.RmqConfig
+	config    objects.RmqConfig
 	queues    map[string]objects.QueueInterface
 	listeners []*Listener
 }
 
-func InitQueue(config *config.RmqConfig, queues map[string]objects.QueueInterface) *Service {
+func InitQueue(config objects.RmqConfig, queues map[string]objects.QueueInterface) *Service {
 	once.Do(func() {
 		service = &Service{
 			config: config,

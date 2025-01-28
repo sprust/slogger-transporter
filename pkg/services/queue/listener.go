@@ -6,12 +6,11 @@ import (
 	"errors"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"slogger/pkg/foundation/atomic"
-	"slogger/pkg/foundation/config"
 	"slogger/pkg/foundation/errs"
 	foundationEvents "slogger/pkg/foundation/events"
-	"slogger/pkg/foundation/queue/connections"
-	events2 "slogger/pkg/foundation/queue/events"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue/connections"
+	events2 "slogger/pkg/services/queue/events"
+	"slogger/pkg/services/queue/objects"
 	"sync"
 	"time"
 )
@@ -25,7 +24,7 @@ type Listener struct {
 	queue            objects.QueueInterface
 	queueSettings    *objects.QueueSettings
 	eventsDispatcher *foundationEvents.Dispatcher
-	config           *config.RmqConfig
+	config           objects.RmqConfig
 	connections      map[int]*connections.Connection
 	publisher        *Publisher
 	connectionsMutex sync.Mutex
@@ -35,7 +34,7 @@ type Listener struct {
 }
 
 func NewListener(
-	config *config.RmqConfig,
+	config objects.RmqConfig,
 	publisher *Publisher,
 	queue objects.QueueInterface,
 ) (*Listener, error) {

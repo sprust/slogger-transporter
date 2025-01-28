@@ -12,7 +12,8 @@ import (
 	"slogger/internal/queues"
 	"slogger/pkg/foundation/app"
 	appConfig "slogger/pkg/foundation/config"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue"
+	"slogger/pkg/services/queue/objects"
 	"strconv"
 	"strings"
 )
@@ -30,8 +31,6 @@ func init() {
 		err = godotenv.Load()
 	} else {
 		err = godotenv.Load(*env)
-
-		args = filterArgs()
 	}
 
 	if err != nil {
@@ -48,19 +47,23 @@ func main() {
 	}
 
 	if len(args) > 2 {
-		commandArgs = args[2:]
+		argsSlice := args[2:]
+
+		commandArgs = make([]string, len(argsSlice))
+
+		copy(commandArgs, argsSlice)
 	}
 
 	newApp := app.NewApp(
+		getAppConfig(),
 		commands.GetCommands(),
-		getQueues(),
-		initAppConfig(),
+		getServiceProviders(),
 	)
 
 	newApp.Start(commandName, commandArgs)
 }
 
-func initAppConfig() appConfig.Config {
+func getAppConfig() appConfig.Config {
 	logKeepDays, err := strconv.Atoi(os.Getenv("LOG_KEEP_DAYS"))
 
 	if err != nil {
@@ -74,12 +77,6 @@ func initAppConfig() appConfig.Config {
 			Levels:   getLogLevels(),
 			DirPath:  os.Getenv("LOG_DIR"),
 			KeepDays: logKeepDays,
-		},
-		RmqConfig: appConfig.RmqConfig{
-			User: os.Getenv("RABBITMQ_USER"),
-			Pass: os.Getenv("RABBITMQ_PASSWORD"),
-			Host: os.Getenv("RABBITMQ_HOST"),
-			Port: os.Getenv("RABBITMQ_PORT"),
 		},
 	}
 }
@@ -113,19 +110,13 @@ func getLogLevels() []slog.Level {
 	return slogLevels
 }
 
-func filterArgs() []string {
-	var result []string
-
-	for _, arg := range args {
-		if !strings.HasPrefix(arg, "--") {
-			result = append(result, arg)
-		}
+func getServiceProviders() []app.ServiceProviderInterface {
+	return []app.ServiceProviderInterface{
+		getQueueServiceProvider(),
 	}
-
-	return result
 }
 
-func getQueues() map[string]objects.QueueInterface {
+func getQueueServiceProvider() app.ServiceProviderInterface {
 	factory, err := queues.NewFactory()
 
 	if err != nil {
@@ -148,5 +139,13 @@ func getQueues() map[string]objects.QueueInterface {
 		queueList[queueName] = q
 	}
 
-	return queueList
+	return queue.NewQueueServiceProvider(
+		objects.RmqConfig{
+			User: os.Getenv("RABBITMQ_USER"),
+			Pass: os.Getenv("RABBITMQ_PASSWORD"),
+			Host: os.Getenv("RABBITMQ_HOST"),
+			Port: os.Getenv("RABBITMQ_PORT"),
+		},
+		queueList,
+	)
 }

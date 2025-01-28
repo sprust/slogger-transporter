@@ -12,31 +12,28 @@ import (
 	"slogger/pkg/foundation/config"
 	"slogger/pkg/foundation/errs"
 	"slogger/pkg/foundation/logging"
-	"slogger/pkg/foundation/queue"
-	"slogger/pkg/foundation/queue/objects"
+	"strings"
 	"syscall"
 )
 
 type App struct {
-	commands           map[string]commands.CommandInterface
 	config             config.Config
-	queue              *queue.Service
+	commands           map[string]commands.CommandInterface
+	serviceProviders   []ServiceProviderInterface
 	closeListeners     []io.Closer
 	lastCloseListeners []io.Closer
 }
 
 func NewApp(
-	commands map[string]commands.CommandInterface,
-	queues map[string]objects.QueueInterface,
 	config config.Config,
+	commands map[string]commands.CommandInterface,
+	serviceProviders []ServiceProviderInterface,
 ) App {
 	app := App{
-		commands: commands,
-		queue:    queue.InitQueue(&config.RmqConfig, queues),
-		config:   config,
+		config:           config,
+		commands:         commands,
+		serviceProviders: serviceProviders,
 	}
-
-	app.AddFirstCloseListener(app.queue)
 
 	return app
 }
@@ -62,6 +59,14 @@ func (a *App) Start(commandName string, args []string) {
 
 	a.AddFirstCloseListener(command)
 
+	for _, provider := range a.serviceProviders {
+		err := provider.Register()
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	signals := make(chan os.Signal)
 
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -78,7 +83,9 @@ func (a *App) Start(commandName string, args []string) {
 		}
 	}()
 
-	err := command.Handle(context.Background(), args)
+	filteredArgs := a.filterArgs(args)
+
+	err := command.Handle(context.Background(), filteredArgs)
 
 	if err != nil {
 		panic(err)
@@ -123,4 +130,16 @@ func (a *App) initLogging() {
 	}
 
 	a.AddLastCloseListener(customHandler)
+}
+
+func (a *App) filterArgs(args []string) []string {
+	var result []string
+
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "--") {
+			result = append(result, arg)
+		}
+	}
+
+	return result
 }

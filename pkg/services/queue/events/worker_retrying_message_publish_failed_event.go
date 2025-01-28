@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"log/slog"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue/objects"
 )
 
 type WorkerRetryingMessagePublishFailed struct {

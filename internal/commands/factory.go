@@ -6,7 +6,7 @@ import (
 	"slogger/internal/commands/serve_rpc_command"
 	"slogger/internal/commands/start_command"
 	foundationCommands "slogger/pkg/foundation/commands"
-	"slogger/pkg/foundation/queue"
+	"slogger/pkg/services/queue"
 )
 
 const (

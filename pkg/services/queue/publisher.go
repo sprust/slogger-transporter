@@ -1,17 +1,16 @@
 package queue
 
 import (
-	"slogger/pkg/foundation/config"
 	"slogger/pkg/foundation/errs"
-	"slogger/pkg/foundation/queue/connections"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue/connections"
+	"slogger/pkg/services/queue/objects"
 )
 
 type Publisher struct {
-	config *config.RmqConfig
+	config objects.RmqConfig
 }
 
-func NewPublisher(config *config.RmqConfig) *Publisher {
+func NewPublisher(config objects.RmqConfig) *Publisher {
 	return &Publisher{
 		config: config,
 	}

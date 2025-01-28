@@ -6,7 +6,7 @@ import (
 	"slogger/internal/config"
 	"slogger/internal/queues/queue_trace_transporter"
 	"slogger/pkg/foundation/errs"
-	"slogger/pkg/foundation/queue/objects"
+	"slogger/pkg/services/queue/objects"
 )
 
 type Factory struct {
