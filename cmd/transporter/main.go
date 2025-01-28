@@ -144,12 +144,7 @@ func getQueueServiceProvider() app.ServiceProviderInterface {
 	}
 
 	return queue.NewQueueServiceProvider(
-		objects.RmqConfig{
-			User: os.Getenv("RABBITMQ_USER"),
-			Pass: os.Getenv("RABBITMQ_PASSWORD"),
-			Host: os.Getenv("RABBITMQ_HOST"),
-			Port: os.Getenv("RABBITMQ_PORT"),
-		},
+		*config.GetConfig().GetRmqConfig(),
 		queueList,
 	)
 }

@@ -3,20 +3,14 @@ package config
 import (
 	"os"
 	"slogger/pkg/foundation/errs"
+	"slogger/pkg/services/queue/objects"
 	"strconv"
 	"sync"
 )
 
 type Config struct {
-	rmq   *RmqParams
+	rmq   *objects.RmqConfig
 	mutex sync.Mutex
-}
-
-type RmqParams struct {
-	RmqUser string
-	RmqPass string
-	RmqHost string
-	RmqPort string
 }
 
 var instance *Config
@@ -30,7 +24,7 @@ func GetConfig() *Config {
 	return instance
 }
 
-func (c *Config) GetRmqConfig() *RmqParams {
+func (c *Config) GetRmqConfig() *objects.RmqConfig {
 	if c.rmq != nil {
 		return c.rmq
 	}
@@ -42,11 +36,11 @@ func (c *Config) GetRmqConfig() *RmqParams {
 		return c.rmq
 	}
 
-	c.rmq = &RmqParams{
-		RmqUser: os.Getenv("RABBITMQ_USER"),
-		RmqPass: os.Getenv("RABBITMQ_PASSWORD"),
-		RmqHost: os.Getenv("RABBITMQ_HOST"),
-		RmqPort: os.Getenv("RABBITMQ_PORT"),
+	c.rmq = &objects.RmqConfig{
+		User: os.Getenv("RABBITMQ_USER"),
+		Pass: os.Getenv("RABBITMQ_PASSWORD"),
+		Host: os.Getenv("RABBITMQ_HOST"),
+		Port: os.Getenv("RABBITMQ_PORT"),
 	}
 
 	return c.rmq
